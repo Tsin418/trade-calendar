@@ -149,6 +149,11 @@ class VersionRead(BaseModel):
     actor_id: str | None
     created_at: datetime
 
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def restore_created_at_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
 
 class ChangeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -159,6 +164,11 @@ class ChangeRead(BaseModel):
     change_type: str
     changed_fields: dict[str, Any]
     created_at: datetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def restore_created_at_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 class FieldLockCreate(BaseModel):
@@ -173,3 +183,8 @@ class FieldLockRead(BaseModel):
     locked_by: str
     reason: str | None
     created_at: datetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def restore_created_at_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value

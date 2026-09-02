@@ -7,7 +7,7 @@ export type ApiEvent = {
   country_code: string;
   category: string;
   event_type: string;
-  status: "confirmed" | "provisional" | "tba" | "expected" | "rescheduled" | "cancelled" | "completed";
+  status: "confirmed" | "provisional" | "tba" | "expected" | "rescheduled" | "cancelled" | "completed" | "ignored";
   importance: "critical" | "high" | "medium" | "low";
   date_precision: "minute" | "hour" | "date" | "window" | "unknown";
   starts_at: string | null;
@@ -29,6 +29,34 @@ export type ApiEvent = {
 
 export type EventListResponse = { items: ApiEvent[]; total: number; limit: number; offset: number };
 export type FieldLock = { id:string; event_id:string; field_name:string; locked_by:string; reason:string|null; created_at:string };
+export type ApiChange = {
+  id:string;
+  event_id:string;
+  from_version:number|null;
+  to_version:number;
+  change_type:string;
+  changed_fields:Record<string, { old:unknown; new:unknown }>;
+  created_at:string;
+};
+export type SyncRun = {
+  id:string;
+  source_id:string;
+  status:"pending"|"running"|"succeeded"|"failed"|"partial";
+  created_count:number;
+  updated_count:number;
+  error_message:string|null;
+};
+export type AppSettings = {
+  timezone:"Asia/Shanghai"|"Asia/Tokyo"|"America/New_York";
+  language:"zh-CN";
+  markets:Array<"US"|"JP"|"KR"|"TW"|"HK"|"GLOBAL">;
+  critical_lead_minutes:number[];
+  high_lead_minutes:number[];
+  daily_summary:string;
+  evening_preview:string;
+  snapshot_retention_days:30|90|180;
+  auto_translation:"off"|"review";
+};
 export type SourceHealth = "healthy" | "stale" | "degraded" | "failed" | "disabled";
 export type ApiSource = {
   id: string;
@@ -66,9 +94,55 @@ export async function fetchEvents(query = ""): Promise<EventListResponse> {
   return response.json();
 }
 
+export async function fetchEvent(eventId:string): Promise<ApiEvent> {
+  const response = await fetch(`/api/v1/events/${eventId}`, { cache:"no-store" });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `事件 API 返回 ${response.status}`));
+  return response.json();
+}
+
+export async function fetchChanges(limit = 50): Promise<ApiChange[]> {
+  const response = await fetch(`/api/v1/changes?limit=${limit}`, { cache:"no-store" });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `变更 API 返回 ${response.status}`));
+  return response.json();
+}
+
 export async function fetchSources(): Promise<ApiSource[]> {
   const response = await fetch("/api/v1/sources", { cache:"no-store" });
   if (!response.ok) throw new Error(await apiFailureMessage(response, `来源 API 返回 ${response.status}`));
+  return response.json();
+}
+
+export async function syncAllSources(): Promise<SyncRun[]> {
+  const response = await fetch("/api/v1/sync", {
+    method:"POST",
+    headers:{ "X-Request-ID":crypto.randomUUID() },
+  });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `同步提交失败（${response.status}）`));
+  return response.json();
+}
+
+export async function fetchSettings(): Promise<AppSettings> {
+  const response = await fetch("/api/v1/settings", { cache:"no-store" });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `设置 API 返回 ${response.status}`));
+  return response.json();
+}
+
+export async function saveSettings(payload:AppSettings): Promise<AppSettings> {
+  const response = await fetch("/api/v1/settings", {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json", "X-Request-ID":crypto.randomUUID() },
+    body:JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `设置保存失败（${response.status}）`));
+  return response.json();
+}
+
+export async function rotateIcsToken(): Promise<{ token:string; url:string }> {
+  const response = await fetch("/api/v1/ics-token/rotate", {
+    method:"POST",
+    headers:{ "X-Request-ID":crypto.randomUUID() },
+  });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `Token 轮换失败（${response.status}）`));
   return response.json();
 }
 

@@ -40,6 +40,10 @@ async def seed_sources(session: AsyncSession, settings: Settings | None = None) 
         else:
             for key, value in values.items():
                 setattr(source, key, value)
+    manual = await session.scalar(select(Source).where(Source.key == "manual"))
+    if manual:
+        manual.enabled = False
+        manual.health = SourceHealth.DISABLED
     await session.commit()
     return count
 

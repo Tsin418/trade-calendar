@@ -50,6 +50,41 @@ async def test_date_only_event_never_fabricates_midnight(client: AsyncClient) ->
     assert error.json()["error"]["code"] == "validation_error"
 
 
+async def test_date_range_excludes_date_only_events_at_the_end_boundary(
+    client: AsyncClient,
+) -> None:
+    base = {
+        "title_zh": "边界日期事件",
+        "title_original": "Boundary date event",
+        "institution": "Test Institution",
+        "country_code": "US",
+        "category": "macro_release",
+        "event_type": "activity",
+        "status": "confirmed",
+        "importance": "medium",
+        "date_precision": "date",
+        "original_timezone": "Asia/Shanghai",
+        "market_tags": ["US"],
+    }
+    for day in ("2026-09-02", "2026-09-03"):
+        response = await client.post(
+            "/api/v1/events",
+            json={**base, "local_date": day, "idempotency_key": f"boundary-{day}"},
+        )
+        assert response.status_code == 201
+
+    result = await client.get(
+        "/api/v1/events",
+        params={
+            "from": "2026-09-01T16:00:00Z",
+            "to": "2026-09-02T16:00:00Z",
+            "from_date": "2026-09-02",
+            "to_date": "2026-09-03",
+        },
+    )
+    assert [item["local_date"] for item in result.json()["items"]] == ["2026-09-02"]
+
+
 async def test_tba_to_specific_time_creates_one_change(client: AsyncClient) -> None:
     create = await client.post(
         "/api/v1/events",
@@ -83,6 +118,7 @@ async def test_tba_to_specific_time_creates_one_change(client: AsyncClient) -> N
     changes = (await client.get(f"/api/v1/events/{event_id}/changes")).json()
     assert [item["version"] for item in versions] == [2, 1]
     assert changes[0]["change_type"] == "time_confirmed"
+    assert changes[0]["created_at"].endswith("Z")
 
 
 async def test_lock_and_soft_delete_flow(
@@ -99,4 +135,3 @@ async def test_lock_and_soft_delete_flow(
     deleted = await client.delete(f"/api/v1/events/{event_id}")
     assert deleted.status_code == 204
     assert (await client.get(f"/api/v1/events/{event_id}")).status_code == 404
-

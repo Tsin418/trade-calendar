@@ -13,6 +13,7 @@ from trade_calendar.models.domain import (
     Notification,
     NotificationStatus,
 )
+from trade_calendar.preferences import load_web_settings
 
 DEFAULT_LEADS: dict[Importance, list[int]] = {
     Importance.CRITICAL: [120, 60, 15],
@@ -43,7 +44,13 @@ async def ensure_event_notifications(
         return 0
     starts_at = _as_utc(event.starts_at)
     created = 0
-    for minutes in DEFAULT_LEADS[event.importance]:
+    preferences = await load_web_settings(session)
+    leads = DEFAULT_LEADS[event.importance]
+    if event.importance == Importance.CRITICAL:
+        leads = preferences.critical_lead_minutes
+    elif event.importance == Importance.HIGH:
+        leads = preferences.high_lead_minutes
+    for minutes in leads:
         scheduled_at = starts_at - timedelta(minutes=minutes)
         if scheduled_at <= now:
             continue

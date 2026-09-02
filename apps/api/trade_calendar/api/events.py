@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
@@ -36,6 +36,8 @@ router = APIRouter(prefix="/events", tags=["events"])
 async def list_events(
     from_at: datetime | None = Query(default=None, alias="from"),
     to_at: datetime | None = Query(default=None, alias="to"),
+    from_date: date | None = None,
+    to_date: date | None = None,
     country: str | None = None,
     market: str | None = None,
     category: str | None = None,
@@ -47,7 +49,8 @@ async def list_events(
     session: AsyncSession = Depends(get_session),
 ) -> EventList:
     statement = event_query(
-        from_at=from_at, to_at=to_at, country=country, market=market, category=category,
+        from_at=from_at, to_at=to_at, from_date=from_date, to_date=to_date,
+        country=country, market=market, category=category,
         importance=importance, status=event_status, query=q,
     )
     total = await count_events(session, statement)

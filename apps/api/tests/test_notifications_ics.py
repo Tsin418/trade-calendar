@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from httpx import AsyncClient
 from icalendar import Calendar
 from sqlalchemy import select
@@ -33,6 +35,26 @@ async def test_critical_notification_schedule_is_idempotent(
             select(Notification).where(Notification.event_id == event.id)
         )))
         assert count == 3
+
+
+async def test_saved_lead_times_drive_new_notification_schedules(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    minute_event_payload: dict[str, object],
+) -> None:
+    settings = (await client.get("/api/v1/settings")).json()
+    settings["critical_lead_minutes"] = [90]
+    assert (await client.put("/api/v1/settings", json=settings)).status_code == 200
+
+    payload = {**minute_event_payload, "idempotency_key": "custom-lead-fomc"}
+    created = await client.post("/api/v1/events", json=payload)
+    assert created.status_code == 201
+
+    async with session_factory() as session:
+        notifications = list(await session.scalars(
+            select(Notification).where(Notification.event_id == UUID(created.json()["id"]))
+        ))
+    assert [item.alert_type for item in notifications] == ["before_90m"]
 
 
 async def test_date_only_event_has_no_minute_notifications(client: AsyncClient) -> None:

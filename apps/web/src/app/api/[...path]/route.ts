@@ -27,6 +27,15 @@ export function resolveApiOrigin(
   }
 }
 
+export function isSelfReferentialOrigin(apiOrigin: string, requestOrigin: string): boolean {
+  return new URL(apiOrigin).origin === new URL(requestOrigin).origin;
+}
+
+export function isAccessRejection(response: Response): boolean {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  return (response.status === 401 || response.status === 403) && contentType.includes("text/html");
+}
+
 function apiUnavailable(message: string) {
   return Response.json(
     { error: { code:"api_unavailable", message } },
@@ -49,10 +58,13 @@ async function privateApiBinding(): Promise<PrivateApiBinding|null> {
 }
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path:string[] }> }) {
-  const vpcBinding = await privateApiBinding();
+  const vpcBinding = process.env.NODE_ENV === "development" ? null : await privateApiBinding();
   const apiOrigin = vpcBinding ? VPC_API_ORIGIN : resolveApiOrigin();
   if (!apiOrigin) {
     return apiUnavailable("事件服务尚未连接，请配置 Cloudflare VPC 或 INTERNAL_API_URL");
+  }
+  if (!vpcBinding && isSelfReferentialOrigin(apiOrigin, request.nextUrl.origin)) {
+    return apiUnavailable("事件服务地址不能指向当前 Web Worker，请配置独立 API 地址");
   }
   const { path } = await context.params;
   const target = new URL(`/api/${path.join("/")}`, apiOrigin);
@@ -82,6 +94,9 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path:str
       : await fetch(upstreamRequest, { cache:"no-store" });
   } catch {
     return apiUnavailable("事件服务暂时不可达，请检查后端或 Cloudflare Tunnel");
+  }
+  if (isAccessRejection(upstream)) {
+    return apiUnavailable("私有事件服务拒绝访问，请检查 Tunnel、VPC Service 或 Access Service Token");
   }
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-encoding");

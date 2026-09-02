@@ -17,11 +17,11 @@
 
 ## 当前架构边界
 
-Cloudflare Worker 只部署 Next.js Web。FastAPI、PostgreSQL 和 APScheduler Worker 仍在本机 Docker Compose 中运行。
+Cloudflare Worker 只部署 Next.js Web。FastAPI、PostgreSQL 和 APScheduler Worker 仍在本机 Docker Compose 中运行；Worker 通过 `CALENDAR_API` VPC Service binding 访问 Tunnel 后方的 FastAPI。
 
-云端 Next.js 的 `/api/*` 代理尚未设置可访问的 `INTERNAL_API_URL`，因此 Dashboard 静态内容可用，但依赖真实 API 的 Today、Tomorrow、Week、Month 和编辑功能会显示数据连接错误。不得把本机 PostgreSQL 端口直接暴露到公网。
+所有页面都以真实 API 为唯一事实来源。VPC Service、Tunnel 或 FastAPI 不可用时，页面会明确显示连接失败，不再回退到静态演示事件，也不会宣称来源健康。`INTERNAL_API_URL` 仅作为没有 VPC binding 时的受保护 HTTPS 回退；配置成 Web Worker 自身地址会被拒绝，避免代理递归。不得把本机 PostgreSQL 端口直接暴露到公网。
 
-下一步应建立受保护的 Cloudflare Tunnel 到本机 Web/API 入口，或迁移后端到长期在线服务器，然后将 Cloudflare Worker 的 `INTERNAL_API_URL` 设置为该 HTTPS 地址。Tunnel 完成前，日常使用仍以 `http://localhost:3000` 为准。
+生产可用性仍依赖本机 Tunnel、API、Worker 和数据库持续在线；长期方案是把后端迁移到高可用服务器。日常本地开发使用 `http://localhost:3000`，Next.js 开发环境会跳过远程 VPC binding 并代理到本地 `INTERNAL_API_URL`。
 
 ## 安全注意
 
@@ -30,4 +30,3 @@ Cloudflare Worker 只部署 Next.js Web。FastAPI、PostgreSQL 和 APScheduler W
 - Cloudflare Access 不应关闭；
 - Cloudflare 构建变量不得写入仓库；
 - 飞书 Webhook 当前未配置。
-

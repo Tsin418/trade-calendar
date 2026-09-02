@@ -23,6 +23,7 @@ from trade_calendar.models.domain import (
     SourceHealth,
     SourceObservation,
 )
+from trade_calendar.preferences import load_web_settings
 from trade_calendar.schemas.events import EventUpdate
 from trade_calendar.services import (
     _record_version,
@@ -117,6 +118,7 @@ class SyncRunner:
         ))
         if existing:
             return existing
+        preferences = await load_web_settings(session)
         snapshot = RawSnapshot(
             source_id=source.id,
             fetch_run_id=run.id,
@@ -126,7 +128,7 @@ class SyncRunner:
             body=content,
             http_status=http_status,
             adapter_version=adapter_version,
-            expires_at=utc_now() + timedelta(days=90),
+            expires_at=utc_now() + timedelta(days=preferences.snapshot_retention_days),
         )
         session.add(snapshot)
         await session.flush()

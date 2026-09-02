@@ -5,29 +5,48 @@ import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { EventDrawer } from "@/components/event-drawer";
 import { type ApiEvent, fetchEvents } from "@/lib/api";
+import { dateKeyInTimezone } from "@/lib/date-time";
+import { appendFilters, type FilterValues } from "@/lib/filters";
 import { labels } from "@/lib/demo-events";
 
-export function CalendarBoard({ view }: { view: "week" | "month" }) {
+import { usePreferences } from "./preferences-context";
+
+export function CalendarBoard({ view, filters }: { view: "week" | "month"; filters:FilterValues }) {
+  const { settings } = usePreferences();
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [selected, setSelected] = useState<ApiEvent|null>(null);
   const [error, setError] = useState<string|null>(null);
-  const load = useCallback(async () => {
+  const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState<{ start:Date; end:Date }|null>(null);
+  const initialDate = useMemo(() => dateKeyInTimezone(new Date(), settings.timezone), [settings.timezone]);
+  const load = useCallback(async (start:Date, end:Date) => {
+    setLoading(true);
     try {
-      const result = await fetchEvents(new URLSearchParams({
-        from:"2026-08-01T00:00:00Z", to:"2026-12-01T00:00:00Z", limit:"200",
-      }).toString());
+      const query = appendFilters(new URLSearchParams({
+        from:start.toISOString(), to:end.toISOString(),
+        from_date:dateKeyInTimezone(start, settings.timezone),
+        to_date:dateKeyInTimezone(end, settings.timezone),
+        limit:"200",
+      }), filters);
+      const result = await fetchEvents(query.toString());
       setEvents(result.items);
       setError(null);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "日历数据加载失败"); }
-  }, []);
+    } catch (reason) {
+      setEvents([]);
+      setError(reason instanceof Error ? reason.message : "日历数据加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, settings.timezone]);
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
+    if (!range) return;
+    const timer = window.setTimeout(() => void load(range.start, range.end), 0);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [load, range]);
   const calendarEvents = events.map((event) => ({
     id: event.id,
     title: `${labels.importance[event.importance]} · ${event.title_zh}`,
@@ -37,12 +56,15 @@ export function CalendarBoard({ view }: { view: "week" | "month" }) {
   }));
   return (
     <>
-    {error && <div className="data-error">{error}。请同时检查 Sources 页面。</div>}
-    <section className="panel calendar-panel">
+    {error && <div className="data-error" role="alert">{error}。请同时检查数据源页面。</div>}
+    <section className="panel calendar-panel" aria-busy={loading}>
+      {loading && <div className="calendar-loading">正在读取当前视图事件…</div>}
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
         initialView={view === "month" ? "dayGridMonth" : "listWeek"}
-        initialDate="2026-09-02"
+        initialDate={initialDate}
+        timeZone={settings.timezone}
+        firstDay={1}
         events={calendarEvents}
         headerToolbar={{ left: "prev,next today", center: "title", right: view === "month" ? "dayGridMonth,listMonth" : "listWeek,timeGridWeek" }}
         buttonText={{ today:"今天", month:"月历", week:"周历", list:"列表" }}
@@ -51,10 +73,11 @@ export function CalendarBoard({ view }: { view: "week" | "month" }) {
         dayMaxEvents={3}
         nowIndicator
         eventDisplay="block"
+        datesSet={(info) => setRange({ start:info.start, end:info.end })}
         eventClick={(info) => setSelected(events.find((event) => event.id === info.event.id) ?? null)}
       />
     </section>
-    {selected && <EventDrawer event={selected} defaultDate={selected.local_date ?? selected.starts_at?.slice(0,10) ?? "2026-09-02"} onClose={() => setSelected(null)} onSaved={() => { setSelected(null); void load(); }} />}
+    {selected && <EventDrawer event={selected} defaultDate={selected.local_date ?? selected.starts_at?.slice(0,10) ?? initialDate} onClose={() => setSelected(null)} onSaved={() => { setSelected(null); if (range) void load(range.start, range.end); }} />}
     </>
   );
 }

@@ -3,8 +3,9 @@
 import { Bell, ChevronRight, Clock3, MessageSquareText } from "lucide-react";
 
 import { labels, type CalendarEvent } from "@/lib/demo-events";
+import { formatEventTime } from "@/lib/date-time";
 
-export function DailyEvents({ events, showPassed = false, onSelect }: { events: CalendarEvent[]; showPassed?: boolean; onSelect?: (event:CalendarEvent) => void }) {
+export function DailyEvents({ events, showPassed = false, onSelect, timezone = "Asia/Shanghai" }: { events: CalendarEvent[]; showPassed?: boolean; onSelect?: (event:CalendarEvent) => void; timezone?:string }) {
   const timed = events.filter((event) => event.precision === "minute");
   const tba = events.filter((event) => event.precision === "date");
   return (
@@ -13,7 +14,7 @@ export function DailyEvents({ events, showPassed = false, onSelect }: { events: 
         <div className="panel-head"><div><h2>按时间排序</h2><p>{timed.length} 个定时事件</p></div><span className="next-pill"><Clock3 size={13} />下一个事件已标记</span></div>
         {timed.map((event, index) => (
           <article className={`day-event ${showPassed && index === 0 ? "passed" : ""} ${index === 1 ? "next" : ""}`} key={event.id}>
-            <div className="day-time"><strong>{event.start?.slice(11,16)}</strong><span>{event.originalTime}</span></div>
+            <div className="day-time"><strong>{event.start ? formatEventTime(event.start, timezone) : "—"}</strong><span>{event.originalTime}</span></div>
             <i className={`impact-dot ${event.importance}`} />
             <div className="day-event-copy"><p><b>{event.country}</b>{event.institution} · {event.category}</p><h3>{event.title}</h3><small>{event.originalTitle}</small></div>
             <div className="day-tags"><span className={`level ${event.importance}`}>{labels.importance[event.importance]}</span><span className={`status ${event.status}`}>{labels.status[event.status]}</span></div>

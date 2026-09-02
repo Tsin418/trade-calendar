@@ -17,6 +17,7 @@ from trade_calendar.api import (
     changes_router,
     events_router,
     notifications_router,
+    settings_router,
     sources_router,
 )
 from trade_calendar.core.config import get_settings
@@ -115,4 +116,5 @@ app.include_router(events_router, prefix="/api/v1")
 app.include_router(changes_router, prefix="/api/v1")
 app.include_router(sources_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(settings_router, prefix="/api/v1")
 app.include_router(calendar_router)

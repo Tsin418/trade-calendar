@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Select, String, cast, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from trade_calendar.core.errors import ApiError
@@ -20,6 +21,7 @@ from trade_calendar.models.domain import (
     EventStatus,
     EventVersion,
     Source,
+    SourceHealth,
 )
 from trade_calendar.schemas.events import EventCreate, EventUpdate
 
@@ -97,11 +99,14 @@ def diff_snapshots(before: dict[str, Any] | None, after: dict[str, Any]) -> dict
 async def _ensure_manual_source(session: AsyncSession) -> Source:
     source = await session.scalar(select(Source).where(Source.key == "manual"))
     if source:
+        source.enabled = False
+        source.health = SourceHealth.DISABLED
         return source
     source = Source(
         key="manual", name="人工录入", institution="User", country_code="LOCAL",
         official_url="manual://admin", source_type="manual", priority=0, schedule="disabled",
-        enabled=True,
+        enabled=False,
+        health=SourceHealth.DISABLED,
     )
     session.add(source)
     await session.flush()
@@ -131,7 +136,14 @@ async def create_event(
         last_verified_at=utc_now(),
     )
     session.add(event)
-    await session.flush()
+    try:
+        await session.flush()
+    except IntegrityError:
+        await session.rollback()
+        existing = await session.scalar(select(Event).where(Event.canonical_key == key))
+        if existing:
+            return existing, False
+        raise
     source = await _ensure_manual_source(session)
     session.add(EventSource(event_id=event.id, source_id=source.id, is_primary=True))
     await _record_version(session, event, None, "manual", "admin")
@@ -236,16 +248,25 @@ async def get_event_or_404(session: AsyncSession, event_id: UUID) -> Event:
 
 def event_query(
     *, from_at: datetime | None = None, to_at: datetime | None = None,
+    from_date: date | None = None, to_date: date | None = None,
     country: str | None = None, market: str | None = None, category: str | None = None,
     importance: str | None = None, status: str | None = None, query: str | None = None,
 ) -> Select[tuple[Event]]:
     statement = select(Event).where(Event.is_deleted.is_(False))
-    if from_at:
-        statement = statement.where(
-            or_(Event.starts_at >= from_at, Event.local_date >= from_at.date())
-        )
-    if to_at:
-        statement = statement.where(or_(Event.starts_at < to_at, Event.local_date <= to_at.date()))
+    local_from = from_date or (from_at.date() if from_at else None)
+    local_to = to_date or (to_at.date() if to_at else None)
+    if from_at and local_from:
+        statement = statement.where(or_(Event.starts_at >= from_at, Event.local_date >= local_from))
+    elif from_at:
+        statement = statement.where(Event.starts_at >= from_at)
+    elif local_from:
+        statement = statement.where(Event.local_date >= local_from)
+    if to_at and local_to:
+        statement = statement.where(or_(Event.starts_at < to_at, Event.local_date < local_to))
+    elif to_at:
+        statement = statement.where(Event.starts_at < to_at)
+    elif local_to:
+        statement = statement.where(Event.local_date < local_to)
     if country:
         statement = statement.where(Event.country_code == country.upper())
     if market:

@@ -16,7 +16,7 @@ const nav = [
   { label: "明天", href: "/tomorrow", icon: CalendarDays },
   { label: "本周", href: "/week", icon: ListFilter },
   { label: "月历", href: "/month", icon: CalendarDays },
-  { label: "变更", href: "/changes", icon: FileClock, badge: "3" },
+  { label: "变更", href: "/changes", icon: FileClock },
 ];
 
 export function Sidebar({ active = "/" }: { active?: string }) {
@@ -28,9 +28,9 @@ export function Sidebar({ active = "/" }: { active?: string }) {
       </Link>
       <nav aria-label="主导航">
         <p>工作台</p>
-        {nav.map(({ label, href, icon: Icon, badge }) => (
+        {nav.map(({ label, href, icon: Icon }) => (
           <Link href={href} aria-label={label} className={active === href ? "active" : ""} key={href}>
-            <Icon size={18} /><b>{label}</b>{badge && <em>{badge}</em>}
+            <Icon size={18} /><b>{label}</b>
           </Link>
         ))}
         <p className="system-label">系统</p>

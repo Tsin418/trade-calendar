@@ -5,11 +5,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DailyEvents } from "@/components/daily-events";
 import { type ApiEvent, fetchEvents } from "@/lib/api";
+import { addDays, dateKeyInTimezone, zonedDayRange } from "@/lib/date-time";
+import { appendFilters, type FilterValues } from "@/lib/filters";
 import type { CalendarEvent } from "@/lib/demo-events";
 
 import { EventDrawer } from "./event-drawer";
+import { usePreferences } from "./preferences-context";
 
-export function LiveDailyWorkspace({ date, showPassed = false }: { date:string; showPassed?:boolean }) {
+export function LiveDailyWorkspace({ offsetDays = 0, filters, showPassed = false }: { offsetDays?:number; filters:FilterValues; showPassed?:boolean }) {
+  const { settings } = usePreferences();
+  const date = useMemo(() => addDays(dateKeyInTimezone(new Date(), settings.timezone), offsetDays), [offsetDays, settings.timezone]);
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [selected, setSelected] = useState<ApiEvent | null>(null);
   const [creating, setCreating] = useState(false);
@@ -19,19 +24,19 @@ export function LiveDailyWorkspace({ date, showPassed = false }: { date:string; 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const start = new Date(`${date}T00:00:00+08:00`);
-    const end = new Date(start.getTime() + 86_400_000);
+    const { start, end } = zonedDayRange(date, settings.timezone);
     try {
-      const result = await fetchEvents(new URLSearchParams({
-        from:start.toISOString(), to:end.toISOString(), limit:"200",
-      }).toString());
+      const query = appendFilters(new URLSearchParams({
+        from:start.toISOString(), to:end.toISOString(), from_date:date, to_date:addDays(date, 1), limit:"200",
+      }), filters);
+      const result = await fetchEvents(query.toString());
       setEvents(result.items);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "事件数据加载失败");
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  }, [date, filters, settings.timezone]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -45,11 +50,11 @@ export function LiveDailyWorkspace({ date, showPassed = false }: { date:string; 
 
   return <>
     <div className="live-toolbar">
-      <div>{loading ? <><RefreshCw className="spin" size={14} />正在读取事件…</> : <>API 实时数据 · {events.length} 条</>}</div>
-      <button onClick={() => setCreating(true)}><Plus size={14} />人工新增事件</button>
+      <div>{loading ? <><RefreshCw className="spin" size={14} />正在读取事件…</> : error ? <>实时事件数据不可用</> : <>API 实时数据 · {events.length} 条</>}</div>
+      <button disabled={loading || Boolean(error)} onClick={() => setCreating(true)}><Plus size={14} />人工新增事件</button>
     </div>
     {error && <div className="data-error"><AlertCircle size={16} /><span>{error}。来源失败不等于当天没有事件。</span><button onClick={() => void load()}>重试</button><X size={14} /></div>}
-    <DailyEvents events={calendarEvents} showPassed={showPassed} onSelect={select} />
+    {!error && <DailyEvents events={calendarEvents} showPassed={showPassed} onSelect={select} timezone={settings.timezone} />}
     {(selected || creating) && <EventDrawer
       event={creating ? null : selected}
       defaultDate={date}

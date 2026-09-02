@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from trade_calendar.models.domain import RunStatus, SourceHealth
 
@@ -25,6 +25,11 @@ class SourceRead(BaseModel):
     last_failure_at: datetime | None
     last_event_count: int | None
 
+    @field_validator("last_success_at", "last_failure_at", mode="before")
+    @classmethod
+    def restore_utc(cls, value: datetime | None) -> datetime | None:
+        return value.replace(tzinfo=UTC) if value is not None and value.tzinfo is None else value
+
 
 class FetchRunRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -44,3 +49,7 @@ class FetchRunRead(BaseModel):
     error_type: str | None
     error_message: str | None
 
+    @field_validator("started_at", "finished_at", mode="before")
+    @classmethod
+    def restore_utc(cls, value: datetime | None) -> datetime | None:
+        return value.replace(tzinfo=UTC) if value is not None and value.tzinfo is None else value
