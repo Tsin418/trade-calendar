@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ListFilter,
   Settings,
-  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -42,7 +41,7 @@ export function Sidebar({ active = "/" }: { active?: string }) {
           <Settings size={18} /><b>设置</b>
         </Link>
       </nav>
-      <div className="system-ok"><ShieldCheck size={18} /><div><strong>系统运行正常</strong><small>11 个来源 · 2 分钟前</small></div></div>
+      <div className="system-ok"><Activity size={18} /><div><strong>实时数据连接</strong><small>状态见数据源页</small></div></div>
     </aside>
   );
 }

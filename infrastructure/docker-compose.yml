@@ -88,5 +88,16 @@ services:
       retries: 5
     restart: unless-stopped
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "run"]
+    env_file:
+      - cloudflared.env
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:

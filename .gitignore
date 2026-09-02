@@ -1,4 +1,5 @@
 .env
+infrastructure/cloudflared.env
 .env.local
 .venv/
 *.egg-info/

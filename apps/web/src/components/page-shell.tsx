@@ -28,10 +28,9 @@ export function PageShell({
             <button className="sync"><RefreshCw size={16} />立即同步</button>
           </div>
         </header>
-        <div className="context"><span><Globe2 size={15} />上海时间 · UTC+8</span><p>上次同步：10:46 · 所有核心来源均为最新</p></div>
+        <div className="context"><span><Globe2 size={15} />上海时间 · UTC+8</span><p>实时连接与抓取状态以数据源页为准</p></div>
         {children}
       </main>
     </div>
   );
 }
-

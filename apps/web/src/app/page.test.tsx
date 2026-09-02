@@ -8,7 +8,7 @@ describe("Dashboard", () => {
     render(<Home />);
     expect(screen.getByRole("heading", { name: "FOMC 利率决议" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "来源健康" })).toBeInTheDocument();
-    expect(screen.getByText("系统运行正常")).toBeInTheDocument();
+    expect(screen.getByText("实时数据连接")).toBeInTheDocument();
   });
 
   it("shows every primary calendar navigation view", () => {
@@ -18,4 +18,3 @@ describe("Dashboard", () => {
     }
   });
 });
-

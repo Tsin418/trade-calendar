@@ -29,10 +29,46 @@ export type ApiEvent = {
 
 export type EventListResponse = { items: ApiEvent[]; total: number; limit: number; offset: number };
 export type FieldLock = { id:string; event_id:string; field_name:string; locked_by:string; reason:string|null; created_at:string };
+export type SourceHealth = "healthy" | "stale" | "degraded" | "failed" | "disabled";
+export type ApiSource = {
+  id: string;
+  key: string;
+  name: string;
+  institution: string;
+  country_code: string;
+  official_url: string;
+  source_type: string;
+  priority: number;
+  enabled: boolean;
+  health: SourceHealth;
+  schedule: string;
+  consecutive_failures: number;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_event_count: number | null;
+};
+
+async function apiFailureMessage(response: Response, fallback: string): Promise<string> {
+  const body: unknown = await response.json().catch(() => null);
+  if (body && typeof body === "object" && "error" in body) {
+    const error = (body as { error?: unknown }).error;
+    if (error && typeof error === "object" && "message" in error) {
+      const message = (error as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+  }
+  return fallback;
+}
 
 export async function fetchEvents(query = ""): Promise<EventListResponse> {
   const response = await fetch(`/api/v1/events${query ? `?${query}` : ""}`, { cache:"no-store" });
-  if (!response.ok) throw new Error(`事件 API 返回 ${response.status}`);
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `事件 API 返回 ${response.status}`));
+  return response.json();
+}
+
+export async function fetchSources(): Promise<ApiSource[]> {
+  const response = await fetch("/api/v1/sources", { cache:"no-store" });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `来源 API 返回 ${response.status}`));
   return response.json();
 }
 
@@ -43,8 +79,7 @@ export async function saveEvent(payload: Record<string, unknown>, eventId?: stri
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.error?.message ?? `保存失败（${response.status}）`);
+    throw new Error(await apiFailureMessage(response, `保存失败（${response.status}）`));
   }
   return response.json();
 }
@@ -63,4 +98,3 @@ export async function setFieldLock(eventId:string, field:string, locked:boolean)
   });
   if (!response.ok && response.status !== 204) throw new Error("字段锁操作失败");
 }
-

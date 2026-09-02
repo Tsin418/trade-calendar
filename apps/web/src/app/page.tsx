@@ -3,6 +3,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
+import { SourceHealthSummary } from "@/components/source-health";
 
 const events = [
   { time: "14:00", origin: "15:00 JST", code: "JP", title: "日本央行货币基础", source: "Bank of Japan", level: "MEDIUM", passed: true },
@@ -75,10 +76,8 @@ export default function Home() {
             <div className="change"><span className="added">+</span><div><h3>新增：香港零售销售</h3><p>High · 9 月 3 日 16:30</p></div><time>1 小时前</time></div>
           </article>
           <article className="panel sources">
-            <div className="panel-head"><div><h2>来源健康</h2><p>核心数据源状态</p></div><a href="#">详情 <ChevronRight size={15} /></a></div>
-            <div className="score"><div><strong>10</strong><span>/ 11 健康</span></div><b>91%</b></div>
-            <div className="health-bar"><i /></div>
-            <div className="legend"><span><i />健康 10</span><span><i />待更新 1</span><span><i />失败 0</span></div>
+            <div className="panel-head"><div><h2>来源健康</h2><p>核心数据源实时状态</p></div><a href="/sources">详情 <ChevronRight size={15} /></a></div>
+            <SourceHealthSummary />
           </article>
         </section>
       </main>
