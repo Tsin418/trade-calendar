@@ -28,3 +28,5 @@ roadmap/        分阶段计划和完成记录
 环境、启动和测试方式见 `docs/development.md`（Phase 1 完成时提供）。
 
 当前本地容器入口：Web `http://localhost:3000`，API 文档 `http://localhost:8000/docs`。
+
+Cloudflare 受保护预览：`https://trade-calendar.chenandrew418.workers.dev`。云端前端已监听 GitHub `main`，本地 API 尚未通过 Tunnel 接入，详见 `docs/cloudflare-deployment.md`。
