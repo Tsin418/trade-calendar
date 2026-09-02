@@ -1,0 +1,136 @@
+version: 1
+locale: zh-CN
+
+event_categories:
+  monetary_policy:
+    name_zh: 货币政策
+    description: 央行议息会议、政策决定、会议纪要与政策发布会。
+    example: FOMC 利率决议
+  macro_release:
+    name_zh: 宏观数据
+    description: 由官方统计机构定期发布的经济指标。
+    example: 美国非农就业
+  market_calendar:
+    name_zh: 市场日历
+    description: 休市、特殊交易时间及结算安排。
+    example: 香港交易所休市
+  corporate:
+    name_zh: 公司事件
+    description: 财报、业绩说明会及股东会议。
+    example: 台积电财报电话会
+  policy:
+    name_zh: 政策与监管
+    description: 具有明确未来日期的政府或监管事项。
+    example: 关税政策生效
+  index:
+    name_zh: 指数调整
+    description: 指数审议结果、再平衡公布与生效。
+    example: MSCI 季度调整生效
+
+event_types:
+  central_bank_decision:
+    category: monetary_policy
+    name_zh: 央行利率决议
+    default_importance: critical
+    example: 日本银行金融政策决定
+  central_bank_minutes:
+    category: monetary_policy
+    name_zh: 央行会议纪要
+    default_importance: high
+    example: FOMC 会议纪要
+  central_bank_speech:
+    category: monetary_policy
+    name_zh: 央行官员讲话
+    default_importance: medium
+    example: 央行行长记者会
+  employment:
+    category: macro_release
+    name_zh: 就业数据
+    default_importance: high
+    example: 美国就业报告
+  inflation:
+    category: macro_release
+    name_zh: 通胀数据
+    default_importance: high
+    example: 消费者价格指数
+  growth:
+    category: macro_release
+    name_zh: 经济增长
+    default_importance: high
+    example: GDP 初值
+  trade:
+    category: macro_release
+    name_zh: 贸易数据
+    default_importance: medium
+    example: 出口金额
+  activity:
+    category: macro_release
+    name_zh: 经济活动
+    default_importance: medium
+    example: 工业生产
+  market_holiday:
+    category: market_calendar
+    name_zh: 交易所休市
+    default_importance: high
+    example: 香港公众假期休市
+  special_trading_hours:
+    category: market_calendar
+    name_zh: 特殊交易时间
+    default_importance: high
+    example: 提前收市
+  earnings_release:
+    category: corporate
+    name_zh: 财报发布
+    default_importance: medium
+    example: 季度业绩发布
+  earnings_call:
+    category: corporate
+    name_zh: 财报电话会
+    default_importance: medium
+    example: 季度业绩电话会
+  policy_effective:
+    category: policy
+    name_zh: 政策生效
+    default_importance: high
+    example: 新关税措施生效
+  index_announcement:
+    category: index
+    name_zh: 指数调整公布
+    default_importance: medium
+    example: 季度审议结果公布
+  index_effective:
+    category: index
+    name_zh: 指数调整生效
+    default_importance: high
+    example: 指数成分调整收盘后生效
+
+confirmation_statuses:
+  confirmed: {name_zh: 已确认, description: 官方来源已给出明确安排}
+  provisional: {name_zh: 暂定, description: 官方公布但明确可能调整}
+  tba: {name_zh: 时间待定, description: 日期已知但具体时间尚未公布}
+  expected: {name_zh: 预计, description: 非最终安排，不能作为官方确认}
+  rescheduled: {name_zh: 已改期, description: 相比历史版本日期或时间已改变}
+  cancelled: {name_zh: 已取消, description: 来源或人工确认事件取消}
+  completed: {name_zh: 已完成, description: 事件已经发生或结果已经发布}
+
+date_precisions:
+  minute: {name_zh: 精确到分钟, storage: starts_at UTC, example: "2026-09-16T18:00:00Z"}
+  hour: {name_zh: 精确到小时, storage: starts_at UTC, example: "2026-09-16T18:00:00Z"}
+  date: {name_zh: 仅日期, storage: local_date only, example: "2026-09-16"}
+  window: {name_zh: 时间窗口, storage: starts_at and ends_at UTC, example: "盘后"}
+  unknown: {name_zh: 未知, storage: local_date optional and no fabricated time, example: "日期待定"}
+
+importance_levels:
+  critical: {name_zh: 关键, description: 可能显著影响多个关注市场}
+  high: {name_zh: 高, description: 可能显著影响至少一个关注市场}
+  medium: {name_zh: 中, description: 值得关注但通常不是核心风险节点}
+  low: {name_zh: 低, description: 作为背景信息展示，默认不提醒}
+
+market_tags:
+  US: {name_zh: 美国, timezone: America/New_York}
+  JP: {name_zh: 日本, timezone: Asia/Tokyo}
+  KR: {name_zh: 韩国, timezone: Asia/Seoul}
+  TW: {name_zh: 台湾, timezone: Asia/Taipei}
+  HK: {name_zh: 香港, timezone: Asia/Hong_Kong}
+  GLOBAL: {name_zh: 全球, timezone: UTC}
+

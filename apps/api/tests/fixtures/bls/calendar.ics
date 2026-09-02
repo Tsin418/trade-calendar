@@ -1,0 +1,30 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//U.S. Bureau of Labor Statistics//Release Calendar//EN
+BEGIN:VEVENT
+UID:employment-2026-09@bls.gov
+DTSTAMP:20260801T120000Z
+DTSTART;TZID=America/New_York:20260904T083000
+DTEND;TZID=America/New_York:20260904T090000
+SUMMARY:The Employment Situation for August 2026
+URL:https://www.bls.gov/news.release/empsit.toc.htm
+DESCRIPTION:Official BLS release calendar fixture.
+END:VEVENT
+BEGIN:VEVENT
+UID:cpi-2026-09@bls.gov
+DTSTAMP:20260801T120000Z
+DTSTART;TZID=America/New_York:20260911T083000
+DTEND;TZID=America/New_York:20260911T090000
+SUMMARY:Consumer Price Index for August 2026
+URL:https://www.bls.gov/news.release/cpi.toc.htm
+END:VEVENT
+BEGIN:VEVENT
+UID:productivity-2026-q2-r@bls.gov
+DTSTAMP:20260801T120000Z
+DTSTART;TZID=America/New_York:20260903T083000
+DTEND;TZID=America/New_York:20260903T090000
+SUMMARY:Productivity and Costs (R) for Second Quarter 2026
+URL:https://www.bls.gov/news.release/prod2.toc.htm
+END:VEVENT
+END:VCALENDAR
+

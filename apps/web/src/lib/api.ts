@@ -1,0 +1,66 @@
+export type ApiEvent = {
+  id: string;
+  canonical_key: string;
+  title_zh: string;
+  title_original: string | null;
+  institution: string;
+  country_code: string;
+  category: string;
+  event_type: string;
+  status: "confirmed" | "provisional" | "tba" | "expected" | "rescheduled" | "cancelled" | "completed";
+  importance: "critical" | "high" | "medium" | "low";
+  date_precision: "minute" | "hour" | "date" | "window" | "unknown";
+  starts_at: string | null;
+  ends_at: string | null;
+  local_date: string | null;
+  original_timezone: string | null;
+  original_time_text: string | null;
+  reference_period: string | null;
+  market_tags: string[];
+  tickers: string[];
+  notes: string | null;
+  reminder_enabled: boolean;
+  is_manual: boolean;
+  current_version: number;
+  last_verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventListResponse = { items: ApiEvent[]; total: number; limit: number; offset: number };
+export type FieldLock = { id:string; event_id:string; field_name:string; locked_by:string; reason:string|null; created_at:string };
+
+export async function fetchEvents(query = ""): Promise<EventListResponse> {
+  const response = await fetch(`/api/v1/events${query ? `?${query}` : ""}`, { cache:"no-store" });
+  if (!response.ok) throw new Error(`事件 API 返回 ${response.status}`);
+  return response.json();
+}
+
+export async function saveEvent(payload: Record<string, unknown>, eventId?: string): Promise<ApiEvent> {
+  const response = await fetch(eventId ? `/api/v1/events/${eventId}` : "/api/v1/events", {
+    method: eventId ? "PATCH" : "POST",
+    headers: { "Content-Type":"application/json", "X-Request-ID":crypto.randomUUID() },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error?.message ?? `保存失败（${response.status}）`);
+  }
+  return response.json();
+}
+
+export async function fetchLocks(eventId:string): Promise<FieldLock[]> {
+  const response = await fetch(`/api/v1/events/${eventId}/locks`, { cache:"no-store" });
+  if (!response.ok) throw new Error("无法读取字段锁");
+  return response.json();
+}
+
+export async function setFieldLock(eventId:string, field:string, locked:boolean): Promise<void> {
+  const response = await fetch(`/api/v1/events/${eventId}/locks/${field}`, {
+    method: locked ? "PUT" : "DELETE",
+    headers: { "Content-Type":"application/json", "X-Request-ID":crypto.randomUUID() },
+    body: locked ? JSON.stringify({ reason:"从 Web 界面人工锁定" }) : undefined,
+  });
+  if (!response.ok && response.status !== 204) throw new Error("字段锁操作失败");
+}
+

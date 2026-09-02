@@ -1,0 +1,26 @@
+version: 1
+timezone: Asia/Shanghai
+daily_digest: "07:30"
+evening_preview: "20:30"
+lead_times_minutes:
+  critical: [120, 60, 15]
+  high: [60, 15]
+  medium: [30]
+  low: []
+change_alerts:
+  new_importance: [critical, high]
+  rescheduled: true
+  cancelled: true
+  time_confirmed: true
+  source_conflict_priority_at_most: 20
+health_alerts:
+  consecutive_failures: 3
+  worker_stale_minutes: 5
+  notification_failures: 3
+channels:
+  feishu:
+    enabled: false
+    webhook_env: FEISHU_WEBHOOK_URL
+  email:
+    enabled: false
+

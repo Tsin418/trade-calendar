@@ -1,0 +1,209 @@
+from pathlib import Path
+from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from trade_calendar.adapters.base import SourceAdapter
+from trade_calendar.adapters.bls import BlsCalendarAdapter, raw_payload_from_fixture
+from trade_calendar.adapters.fed import FedFomcAdapter
+from trade_calendar.adapters.http import HttpFetcher
+from trade_calendar.adapters.types import RawPayload, SourceEvent
+from trade_calendar.models.domain import (
+    Event,
+    EventChange,
+    EventSource,
+    EventVersion,
+    FetchRun,
+    RunStatus,
+    Source,
+    SourceHealth,
+)
+from trade_calendar.sync import SyncRunner, make_run
+
+FIXTURE = Path(__file__).parent / "fixtures" / "bls" / "calendar.ics"
+FED_FIXTURE = Path(__file__).parent / "fixtures" / "fed" / "fomc-calendar.html"
+
+
+class FixtureBlsAdapter(BlsCalendarAdapter):
+    def __init__(self, content: bytes) -> None:
+        super().__init__(HttpFetcher(user_agent="test-suite"))
+        self.content = content
+
+    async def fetch(self) -> RawPayload:
+        return raw_payload_from_fixture(self.content)
+
+
+class FixtureFedAdapter(FedFomcAdapter):
+    def __init__(self, content: bytes) -> None:
+        super().__init__(HttpFetcher(user_agent="test-suite"))
+        self.content = content
+
+    async def fetch(self) -> RawPayload:
+        return RawPayload(
+            source_key=self.source_key,
+            url=self.url,
+            content=self.content,
+            content_type="text/html",
+        )
+
+
+class AlternateIdFedAdapter(FixtureFedAdapter):
+    def parse(self, payload: RawPayload) -> list[SourceEvent]:
+        events = super().parse(payload)
+        for event in events:
+            event.source_event_id = f"{event.source_event_id}-reissued"
+        return events
+
+
+async def make_source(session: AsyncSession, key: str = "us_bls_calendar") -> Source:
+    source = Source(
+        key=key,
+        name="BLS Fixture",
+        institution="U.S. Bureau of Labor Statistics",
+        country_code="US",
+        official_url="https://www.bls.gov/schedule/news_release/bls.ics",
+        source_type="ics",
+        priority=10,
+        enabled=True,
+        health=SourceHealth.STALE,
+        schedule="manual",
+    )
+    session.add(source)
+    await session.commit()
+    await session.refresh(source)
+    return source
+
+
+async def queue_run(
+    session_factory: async_sessionmaker[AsyncSession],
+    source_id: UUID,
+    adapter: SourceAdapter,
+) -> FetchRun:
+    async with session_factory() as session:
+        source = await session.get(Source, source_id)
+        assert source is not None
+        run = make_run(source, adapter)
+        session.add(run)
+        await session.commit()
+        await session.refresh(run)
+        return run
+
+
+async def test_sync_is_idempotent_and_keeps_snapshots(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    adapter = FixtureBlsAdapter(FIXTURE.read_bytes())
+    async with session_factory() as session:
+        source = await make_source(session)
+        source_id = source.id
+    runner = SyncRunner(session_factory)
+    first = await queue_run(session_factory, source_id, adapter)
+    first_result = await runner.execute(first.id, adapter)
+    second = await queue_run(session_factory, source_id, adapter)
+    second_result = await runner.execute(second.id, adapter)
+
+    assert first_result.status == RunStatus.SUCCEEDED
+    assert first_result.created_count == 3
+    assert second_result.status == RunStatus.SUCCEEDED
+    assert second_result.created_count == 0
+    assert second_result.updated_count == 0
+
+    async with session_factory() as session:
+        assert await session.scalar(select(func.count(Event.id))) == 3
+        assert await session.scalar(select(func.count(EventVersion.id))) == 3
+
+
+async def test_source_reschedule_updates_original_event(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    original = FIXTURE.read_bytes()
+    changed = original.replace(b"20260904T", b"20260905T")
+    first_adapter = FixtureBlsAdapter(original)
+    second_adapter = FixtureBlsAdapter(changed)
+    async with session_factory() as session:
+        source = await make_source(session)
+        source_id = source.id
+    runner = SyncRunner(session_factory)
+    first = await queue_run(session_factory, source_id, first_adapter)
+    await runner.execute(first.id, first_adapter)
+    second = await queue_run(session_factory, source_id, second_adapter)
+    result = await runner.execute(second.id, second_adapter)
+    assert result.updated_count == 1, (result.status, result.error_type, result.error_message)
+
+    async with session_factory() as session:
+        event = await session.scalar(select(Event).where(Event.title_zh == "美国就业报告"))
+        assert event is not None
+        assert event.starts_at is not None
+        assert event.starts_at.day == 5
+        versions = list(await session.scalars(
+            select(EventVersion).where(EventVersion.event_id == event.id)
+        ))
+        assert len(versions) == 2
+        change = await session.scalar(
+            select(EventChange)
+            .where(EventChange.event_id == event.id)
+            .order_by(EventChange.created_at.desc())
+        )
+        assert change is not None
+        assert change.change_type == "rescheduled"
+
+
+async def test_failed_empty_result_never_deletes_existing_events(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    valid = FixtureBlsAdapter(FIXTURE.read_bytes())
+    empty = FixtureBlsAdapter(b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n")
+    async with session_factory() as session:
+        source = await make_source(session)
+        source_id = source.id
+    runner = SyncRunner(session_factory)
+    first = await queue_run(session_factory, source_id, valid)
+    await runner.execute(first.id, valid)
+    failed = await queue_run(session_factory, source_id, empty)
+    result = await runner.execute(failed.id, empty)
+
+    assert result.status == RunStatus.FAILED
+    assert result.error_type == "structure_changed"
+    async with session_factory() as session:
+        assert await session.scalar(select(func.count(Event.id))) == 3
+        links = await session.scalar(select(func.count(EventSource.id)))
+        assert links == 3
+
+
+async def test_recurring_same_title_on_different_dates_are_distinct_events(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    adapter = FixtureFedAdapter(FED_FIXTURE.read_bytes())
+    async with session_factory() as session:
+        source = await make_source(session, key="fed_fomc_calendar")
+        source.name = "Fed Fixture"
+        await session.commit()
+        source_id = source.id
+    runner = SyncRunner(session_factory)
+    run = await queue_run(session_factory, source_id, adapter)
+    result = await runner.execute(run.id, adapter)
+    assert result.status == RunStatus.SUCCEEDED
+    assert result.created_count == 3
+    async with session_factory() as session:
+        assert await session.scalar(select(func.count(Event.id))) == 3
+
+
+async def test_reissued_source_ids_reuse_one_event_source_link(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    original = FixtureFedAdapter(FED_FIXTURE.read_bytes())
+    reissued = AlternateIdFedAdapter(FED_FIXTURE.read_bytes())
+    async with session_factory() as session:
+        source = await make_source(session, key="fed_fomc_calendar")
+        source_id = source.id
+    runner = SyncRunner(session_factory)
+    first = await queue_run(session_factory, source_id, original)
+    await runner.execute(first.id, original)
+    second = await queue_run(session_factory, source_id, reissued)
+    result = await runner.execute(second.id, reissued)
+    assert result.status == RunStatus.SUCCEEDED
+    assert result.created_count == 0
+    async with session_factory() as session:
+        assert await session.scalar(select(func.count(Event.id))) == 3
+        assert await session.scalar(select(func.count(EventSource.id))) == 3

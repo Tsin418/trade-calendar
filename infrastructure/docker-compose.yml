@@ -1,0 +1,92 @@
+name: trade-calendar
+
+x-app-environment: &app-environment
+  CALENDAR_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-calendar}:${POSTGRES_PASSWORD:-calendar}@db:5432/${POSTGRES_DB:-calendar}
+  CALENDAR_ENVIRONMENT: ${CALENDAR_ENVIRONMENT:-development}
+  CALENDAR_USER_TIMEZONE: ${CALENDAR_USER_TIMEZONE:-Asia/Shanghai}
+  CALENDAR_SESSION_SECRET: ${CALENDAR_SESSION_SECRET:-development-only-change-me}
+  CALENDAR_ICS_TOKEN: ${CALENDAR_ICS_TOKEN:-development-ics-token}
+  CALENDAR_FEISHU_WEBHOOK_URL: ${CALENDAR_FEISHU_WEBHOOK_URL:-}
+  CALENDAR_CONFIG_DIR: /app/config
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-calendar}
+      POSTGRES_USER: ${POSTGRES_USER:-calendar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-calendar}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-calendar} -d ${POSTGRES_DB:-calendar}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.api
+    command: ["alembic", "upgrade", "head"]
+    environment: *app-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.api
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.api
+    command: ["python", "/app/worker/main.py"]
+    environment: *app-environment
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    environment:
+      INTERNAL_API_URL: http://api:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

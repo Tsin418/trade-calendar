@@ -1,0 +1,20 @@
+version: 1
+watched_markets: [US, JP, KR, TW, HK, GLOBAL]
+companies:
+  - {ticker: NVDA, market: US, name_zh: 英伟达, enabled: true}
+  - {ticker: AAPL, market: US, name_zh: 苹果, enabled: true}
+  - {ticker: MSFT, market: US, name_zh: 微软, enabled: true}
+  - {ticker: 7203, market: JP, name_zh: 丰田汽车, enabled: true}
+  - {ticker: 6758, market: JP, name_zh: 索尼集团, enabled: true}
+  - {ticker: 005930, market: KR, name_zh: 三星电子, enabled: true}
+  - {ticker: 000660, market: KR, name_zh: SK 海力士, enabled: true}
+  - {ticker: 2330, market: TW, name_zh: 台积电, enabled: true}
+  - {ticker: 0700, market: HK, name_zh: 腾讯控股, enabled: true}
+  - {ticker: 9988, market: HK, name_zh: 阿里巴巴, enabled: true}
+keywords:
+  - {value: 关税, category: policy, enabled: true}
+  - {value: 出口管制, category: policy, enabled: true}
+  - {value: 半导体, category: policy, enabled: true}
+  - {value: 房地产政策, category: policy, enabled: true}
+  - {value: 财政刺激, category: policy, enabled: true}
+

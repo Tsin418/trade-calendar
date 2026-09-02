@@ -1,0 +1,46 @@
+version: 1
+default_importance: medium
+
+base_rules:
+  central_bank_decision: critical
+  central_bank_minutes: high
+  central_bank_speech: medium
+  employment: high
+  inflation: high
+  growth: high
+  trade: medium
+  activity: medium
+  market_holiday: high
+  special_trading_hours: high
+  earnings_release: medium
+  earnings_call: medium
+  policy_effective: high
+  index_announcement: medium
+  index_effective: high
+
+adjustments:
+  - id: watched_market
+    when: market in user.watched_markets
+    delta: 1
+    reason_zh: 命中关注市场
+  - id: watched_company
+    when: ticker in user.company_watchlist
+    delta: 1
+    reason_zh: 命中公司 Watchlist
+  - id: rescheduled_high_priority
+    when: status == rescheduled and source_priority <= 20
+    delta: 1
+    reason_zh: 高优先级来源确认改期
+  - id: manual_override
+    when: manual_importance is not null
+    action: replace
+    reason_zh: 用户人工覆盖
+
+score_mapping:
+  critical: 4
+  high: 3
+  medium: 2
+  low: 1
+  minimum: 1
+  maximum: 4
+

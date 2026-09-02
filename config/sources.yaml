@@ -1,0 +1,165 @@
+version: 1
+reviewed_at: 2026-09-02
+policy:
+  official_first: true
+  empty_result_never_deletes: true
+  snapshot_retention_days: 90
+  user_agent: TradeCalendar/0.1 (private single-user calendar)
+
+sources:
+  - id: fed_fomc_calendar
+    name: Federal Reserve FOMC Calendar
+    institution: Board of Governors of the Federal Reserve System
+    country: US
+    official_url: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
+    type: html
+    categories: [monetary_policy]
+    priority: 10
+    role: primary
+    fetch_schedule: "0 15 * * *"
+    expected_items: {min: 8, max: 40}
+    stale_after_hours: 168
+    terms: Public official website; apply conservative request rate and attribution.
+    fallback: Federal Reserve public calendar and press releases
+  - id: us_bls_calendar
+    name: U.S. BLS Release Calendar
+    institution: U.S. Bureau of Labor Statistics
+    country: US
+    official_url: https://www.bls.gov/schedule/news_release/bls.ics
+    type: ics
+    categories: [macro_release]
+    priority: 10
+    role: primary
+    fetch_schedule: "15 */6 * * *"
+    expected_items: {min: 20, max: 400}
+    stale_after_hours: 48
+    terms: Public U.S. government calendar; retain source attribution.
+    fallback: https://www.bls.gov/schedule/
+  - id: us_bea_schedule
+    name: U.S. BEA News Schedule
+    institution: U.S. Bureau of Economic Analysis
+    country: US
+    official_url: https://www.bea.gov/news/schedule
+    type: html
+    categories: [macro_release]
+    priority: 10
+    role: primary
+    fetch_schedule: "30 */6 * * *"
+    expected_items: {min: 5, max: 120}
+    stale_after_hours: 72
+    terms: Public U.S. government schedule; obey robots and rate limits.
+    fallback: BEA news releases page
+  - id: boj_mpm
+    name: Bank of Japan Monetary Policy Meetings
+    institution: Bank of Japan
+    country: JP
+    official_url: https://www.boj.or.jp/en/mopo/mpmsche_minu/
+    type: html
+    categories: [monetary_policy]
+    priority: 10
+    role: primary
+    fetch_schedule: "0 */12 * * *"
+    expected_items: {min: 8, max: 60}
+    stale_after_hours: 168
+    terms: Public official schedule; conservative request rate.
+    fallback: https://www.boj.or.jp/en/about/calendar/index.htm
+  - id: boj_release_schedule
+    name: Bank of Japan Release Schedule
+    institution: Bank of Japan
+    country: JP
+    official_url: https://www.boj.or.jp/en/about/calendar/index.htm
+    type: html
+    categories: [monetary_policy, macro_release]
+    priority: 20
+    role: secondary
+    fetch_schedule: "20 */12 * * *"
+    expected_items: {min: 5, max: 200}
+    stale_after_hours: 168
+    terms: Public official schedule; conservative request rate.
+    fallback: Manual verification on BOJ publications pages
+  - id: bok_mpb
+    name: Bank of Korea MPB Meeting Dates
+    institution: Bank of Korea
+    country: KR
+    official_url: https://www.bok.or.kr/eng/main/contents.do?menuNo=400020
+    type: html
+    categories: [monetary_policy]
+    priority: 10
+    role: primary
+    fetch_schedule: "40 */12 * * *"
+    expected_items: {min: 8, max: 40}
+    stale_after_hours: 168
+    terms: Public official schedule; conservative request rate.
+    fallback: Bank of Korea monetary policy decision press releases
+  - id: korea_statistics_calendar
+    name: Statistics Korea Release Calendar
+    institution: Statistics Korea
+    country: KR
+    official_url: https://kostat.go.kr/
+    type: html
+    categories: [macro_release]
+    priority: 20
+    role: primary
+    fetch_schedule: "10 */12 * * *"
+    expected_items: {min: 5, max: 250}
+    stale_after_hours: 72
+    terms: Parser endpoint and access terms must be reconfirmed before enabling.
+    fallback: Manual official press-release verification
+    enabled: false
+  - id: taiwan_cbc
+    name: Taiwan Central Bank Press Releases
+    institution: Central Bank of the Republic of China (Taiwan)
+    country: TW
+    official_url: https://www.cbc.gov.tw/en/lp-448-2-5-20.html
+    type: html
+    categories: [monetary_policy]
+    priority: 10
+    role: primary
+    fetch_schedule: "50 */12 * * *"
+    expected_items: {min: 4, max: 200}
+    stale_after_hours: 168
+    terms: Public official press releases; conservative request rate.
+    fallback: Manual verification of provisional annual meeting schedule
+  - id: taiwan_dgbas_calendar
+    name: Taiwan Advance Release Calendar
+    institution: Directorate-General of Budget, Accounting and Statistics
+    country: TW
+    official_url: https://eng.stat.gov.tw/News_NoticeCalendar_EN.aspx?n=4011
+    type: html
+    categories: [macro_release]
+    priority: 10
+    role: primary
+    fetch_schedule: "25 */12 * * *"
+    expected_items: {min: 10, max: 800}
+    stale_after_hours: 72
+    terms: Public official calendar; conservative request rate.
+    fallback: DGBAS press releases
+  - id: hk_censtatd_schedule
+    name: Hong Kong Regular Statistics Schedule
+    institution: Census and Statistics Department, HKSAR
+    country: HK
+    official_url: https://www.censtatd.gov.hk/en/page_898.html
+    type: pdf
+    categories: [macro_release]
+    priority: 10
+    role: primary
+    fetch_schedule: "35 */12 * * *"
+    expected_items: {min: 20, max: 200}
+    stale_after_hours: 168
+    terms: Public official publication schedule; annual PDF URL changes.
+    fallback: C&SD press release index
+  - id: hkex_calendar
+    name: HKEX Calendar
+    institution: Hong Kong Exchanges and Clearing Limited
+    country: HK
+    official_url: https://www.hkex.com.hk/News/HKEX-Calendar
+    type: html
+    categories: [market_calendar]
+    priority: 10
+    role: primary
+    fetch_schedule: "45 */12 * * *"
+    expected_items: {min: 10, max: 150}
+    stale_after_hours: 168
+    terms: Public official calendar; confirm reuse terms before production cache/export.
+    fallback: Annual HKEX securities market holiday circular
+
