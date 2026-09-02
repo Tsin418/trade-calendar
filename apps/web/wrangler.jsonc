@@ -11,7 +11,8 @@
   "vpc_services": [
     {
       "binding": "CALENDAR_API",
-      "service_id": "01a060b3-210b-7783-b3c5-75cd9d1c70fc"
+      "service_id": "01a060b3-210b-7783-b3c5-75cd9d1c70fc",
+      "remote": false
     }
   ],
   "observability": {

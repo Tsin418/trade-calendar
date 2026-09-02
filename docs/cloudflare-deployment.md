@@ -8,12 +8,14 @@
 - Cloudflare Worker：`trade-calendar`；
 - 正式地址：`https://trade-calendar.chenandrew418.workers.dev`；
 - Git 集成：监听 `main`，新提交自动构建部署；
-- 构建命令：`cd apps/web && npm ci && npm run cf:build`；
+- 构建命令：`cd apps/web && npm ci && npm run cf:build`；OpenNext 配置使用非自动探测文件 `open-next.cloudflare.config.ts`；
 - 部署命令：`cd apps/web && npx wrangler deploy`；
 - 运行时：OpenNext Cloudflare Adapter 1.20.5、Next.js 16；
 - Access：Production 与 Preview 全流量保护；
 - Access 策略：仅当前 Cloudflare 账户成员允许，Session 24 小时；
 - Observability：Worker Logs 已启用。
+
+`CALENDAR_API` 的 Wrangler 配置显式使用 `"remote": false`，实际发布时仍由 `service_id` 绑定到生产 Worker。OpenNext 1.20.5 的部署封装会在发布前调用 Wrangler 平台代理；VPC binding 会令该代理尝试连接受 Access 保护的远程 Worker，非交互 CI 因缺少 Access Service Token 而失败。本项目未使用 OpenNext R2 缓存填充或 skew mapping，因此构建完成后由原始 `wrangler deploy` 直接发布 `.open-next/worker.js`，避免不必要的平台代理连接。
 
 ## 当前架构边界
 
