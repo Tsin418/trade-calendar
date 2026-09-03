@@ -5,23 +5,27 @@ import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 
 import { type ApiEvent, fetchLocks, saveEvent, setFieldLock } from "@/lib/api";
 
+import { usePreferences } from "./preferences-context";
+
 const lockableFields = [
   ["title_zh", "中文标题"], ["starts_at", "时间"], ["importance", "重要性"], ["notes", "个人备注"],
 ] as const;
 
 export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:ApiEvent|null; defaultDate:string; onClose:()=>void; onSaved:()=>void }) {
+  const { readOnly } = usePreferences();
   const [precision, setPrecision] = useState<string>(event?.date_precision ?? "date");
   const [locks, setLocks] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
-    if (!event) return;
+    if (!event || readOnly) return;
     fetchLocks(event.id).then((items) => setLocks(items.map((item) => item.field_name))).catch(() => setLocks([]));
-  }, [event]);
+  }, [event, readOnly]);
 
   async function submit(formEvent:FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (readOnly) return;
     setSaving(true);
     setError(null);
     const data = new FormData(formEvent.currentTarget);
@@ -65,10 +69,10 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
 
   const localStart = event?.starts_at ? toLocalInput(event.starts_at) : `${defaultDate}T09:00`;
   return <div className="drawer-backdrop" role="presentation" onMouseDown={(mouseEvent) => { if (mouseEvent.target === mouseEvent.currentTarget) onClose(); }}>
-    <aside className="event-drawer" role="dialog" aria-modal="true" aria-label={event ? `编辑 ${event.title_zh}` : "人工新增事件"}>
-      <div className="drawer-head"><div><span><ShieldCheck size={16} />{event ? `版本 ${event.current_version}` : "人工来源"}</span><h2>{event ? "事件详情与编辑" : "新增事件"}</h2></div><button onClick={onClose} aria-label="关闭"><X size={18} /></button></div>
+    <aside className="event-drawer" role="dialog" aria-modal="true" aria-label={event ? `${readOnly ? "查看" : "编辑"} ${event.title_zh}` : "人工新增事件"}>
+      <div className="drawer-head"><div><span><ShieldCheck size={16} />{readOnly ? "公开信息" : event ? `版本 ${event.current_version}` : "人工来源"}</span><h2>{readOnly ? "事件详情" : event ? "事件详情与编辑" : "新增事件"}</h2></div><button onClick={onClose} aria-label="关闭"><X size={18} /></button></div>
       <form onSubmit={submit}>
-        <div className="drawer-fields">
+        <fieldset className="drawer-fields" disabled={readOnly}>
           <Field label="中文标题"><input name="title_zh" required defaultValue={event?.title_zh ?? ""} /></Field>
           <Field label="原标题"><input name="title_original" defaultValue={event?.title_original ?? ""} /></Field>
           <Field label="机构"><input name="institution" required defaultValue={event?.institution ?? "人工录入"} /></Field>
@@ -78,10 +82,10 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
           {precision === "date" ? <Field label="事件日期"><input name="local_date" type="date" required defaultValue={event?.local_date ?? defaultDate} /></Field> : <Field label="上海时间"><input name="starts_at" type="datetime-local" required defaultValue={localStart} /></Field>}
           <Field label="个人备注"><textarea name="notes" rows={4} defaultValue={event?.notes ?? ""} /></Field>
           <label className="reminder-toggle"><input type="checkbox" name="reminder_enabled" defaultChecked={event?.reminder_enabled ?? true} /><span><BellCheck />启用单事件提醒</span></label>
-        </div>
-        {event && <section className="field-locks"><h3>人工字段锁</h3><p>锁定后，自动来源不能覆盖该字段。</p><div>{lockableFields.map(([field,label]) => <button type="button" className={locks.includes(field) ? "locked" : ""} onClick={() => void toggleLock(field)} key={field}>{locks.includes(field) ? <LockKeyhole size={13} /> : <UnlockKeyhole size={13} />}{label}{locks.includes(field) && <Check size={12} />}</button>)}</div></section>}
+        </fieldset>
+        {event && !readOnly && <section className="field-locks"><h3>人工字段锁</h3><p>锁定后，自动来源不能覆盖该字段。</p><div>{lockableFields.map(([field,label]) => <button type="button" className={locks.includes(field) ? "locked" : ""} onClick={() => void toggleLock(field)} key={field}>{locks.includes(field) ? <LockKeyhole size={13} /> : <UnlockKeyhole size={13} />}{label}{locks.includes(field) && <Check size={12} />}</button>)}</div></section>}
         {error && <p className="drawer-error">{error}</p>}
-        <footer className="drawer-footer"><button type="button" onClick={onClose}>取消</button><button className="primary" disabled={saving}><Save size={14} />{saving ? "保存中…" : "保存事件"}</button></footer>
+        <footer className="drawer-footer"><button type="button" onClick={onClose}>{readOnly ? "关闭" : "取消"}</button>{!readOnly && <button className="primary" disabled={saving}><Save size={14} />{saving ? "保存中…" : "保存事件"}</button>}</footer>
       </form>
     </aside>
   </div>;

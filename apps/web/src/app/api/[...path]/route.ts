@@ -43,6 +43,44 @@ function apiUnavailable(message: string) {
   );
 }
 
+function publicAccessDenied(message: string) {
+  return Response.json(
+    { error:{ code:"public_read_only", message } },
+    { status:403, headers:{ "Cache-Control":"no-store" } },
+  );
+}
+
+export function isPublicApiAllowed(
+  method:string,
+  path:string[],
+  readOnly = process.env.PUBLIC_READ_ONLY === "1",
+):boolean {
+  if (!readOnly) return true;
+  if (method !== "GET" && method !== "HEAD") return false;
+  const route = path.join("/");
+  return route === "v1/sources" || /^v1\/events(?:\/[^/]+)?$/.test(route);
+}
+
+export function sanitizePublicEvents(payload:unknown):unknown {
+  const sanitize = (value:Record<string,unknown>) => ({
+    ...value,
+    notes:null,
+    reminder_enabled:false,
+  });
+  if (!payload || typeof payload !== "object") return payload;
+  if ("items" in payload && Array.isArray((payload as { items:unknown }).items)) {
+    const value = payload as Record<string,unknown> & { items:unknown[] };
+    const items = value.items
+      .filter((item):item is Record<string,unknown> => (
+        Boolean(item) && typeof item === "object" && !(item as { is_manual?:boolean }).is_manual
+      ))
+      .map(sanitize);
+    return { ...value, items, total:items.length };
+  }
+  const value = payload as Record<string,unknown>;
+  return value.is_manual ? null : sanitize(value);
+}
+
 type PrivateApiBinding = {
   fetch(input: Request): Promise<Response>;
 };
@@ -58,6 +96,11 @@ async function privateApiBinding(): Promise<PrivateApiBinding|null> {
 }
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path:string[] }> }) {
+  const { path } = await context.params;
+  const publicReadOnly = process.env.PUBLIC_READ_ONLY === "1";
+  if (!isPublicApiAllowed(request.method, path, publicReadOnly)) {
+    return publicAccessDenied("公开链接仅供查看，不能修改日历或读取私有设置");
+  }
   const vpcBinding = process.env.NODE_ENV === "development" ? null : await privateApiBinding();
   const apiOrigin = vpcBinding ? VPC_API_ORIGIN : resolveApiOrigin();
   if (!apiOrigin) {
@@ -66,7 +109,6 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path:str
   if (!vpcBinding && isSelfReferentialOrigin(apiOrigin, request.nextUrl.origin)) {
     return apiUnavailable("事件服务地址不能指向当前 Web Worker，请配置独立 API 地址");
   }
-  const { path } = await context.params;
   const target = new URL(`/api/${path.join("/")}`, apiOrigin);
   target.search = request.nextUrl.search;
   const headers = new Headers();
@@ -97,6 +139,14 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path:str
   }
   if (isAccessRejection(upstream)) {
     return apiUnavailable("私有事件服务拒绝访问，请检查 Tunnel、VPC Service 或 Access Service Token");
+  }
+  if (publicReadOnly && path[0] === "v1" && path[1] === "events" && upstream.ok) {
+    const payload = sanitizePublicEvents(await upstream.json());
+    if (payload === null) return publicAccessDenied("人工事件不通过公开链接展示");
+    return Response.json(payload, {
+      status:upstream.status,
+      headers:{ "Cache-Control":"public, max-age=60" },
+    });
   }
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-encoding");

@@ -12,7 +12,7 @@ import { labels } from "@/lib/demo-events";
 import { usePreferences } from "./preferences-context";
 
 export function DashboardWorkspace() {
-  const { settings } = usePreferences();
+  const { settings, readOnly } = usePreferences();
   const [todayEvents, setTodayEvents] = useState<ApiEvent[]>([]);
   const [weekEvents, setWeekEvents] = useState<ApiEvent[]>([]);
   const [nextCritical, setNextCritical] = useState<ApiEvent|null>(null);
@@ -34,7 +34,7 @@ export function DashboardWorkspace() {
           fetchEvents(new URLSearchParams({ from:dayRange.start.toISOString(), to:dayRange.end.toISOString(), from_date:today, to_date:addDays(today, 1), limit:"200" }).toString()),
           fetchEvents(new URLSearchParams({ from:dayRange.start.toISOString(), to:weekEnd.toISOString(), from_date:today, to_date:addDays(today, 7), limit:"200" }).toString()),
           fetchEvents(new URLSearchParams({ from:new Date().toISOString(), to:yearEnd.toISOString(), from_date:today, to_date:addDays(today, 370), importance:"critical", limit:"50" }).toString()),
-          fetchChanges(6),
+          readOnly ? Promise.resolve([]) : fetchChanges(6),
         ]);
         const eventIds = [...new Set(recentChanges.map((change) => change.event_id))];
         const changeEvents = await Promise.all(eventIds.map(async (id) => {
@@ -61,7 +61,7 @@ export function DashboardWorkspace() {
     }
     void load();
     return () => { cancelled = true; };
-  }, [settings.markets, settings.timezone]);
+  }, [readOnly, settings.markets, settings.timezone]);
 
   const upcomingToday = useMemo(() => todayEvents.filter(isUpcoming).length, [todayEvents]);
   const importantWeek = useMemo(() => weekEvents.filter((event) => event.importance === "critical" || event.importance === "high").slice(0, 3), [weekEvents]);

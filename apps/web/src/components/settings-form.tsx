@@ -11,6 +11,7 @@ export function SettingsForm() {
   const preferences = usePreferences();
   if (preferences.loading) return <div className="source-loading">正在读取个人设置…</div>;
   if (preferences.error) return <div className="data-error" role="alert">{preferences.error}<button onClick={() => void preferences.reload()}>重试</button></div>;
+  if (preferences.readOnly) return <div className="read-only-notice">公开链接仅供查看；个人设置和提醒请在本机版本中管理。</div>;
   return <EditableSettings initial={preferences.settings} onSaved={preferences.setSettings} />;
 }
 

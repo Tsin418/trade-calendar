@@ -78,6 +78,12 @@ export type ApiSource = {
   last_event_count: number | null;
 };
 
+export async function fetchPublicMode(): Promise<{ readOnly:boolean }> {
+  const response = await fetch("/api/public-mode", { cache:"no-store" });
+  if (!response.ok) return { readOnly:false };
+  return response.json();
+}
+
 async function apiFailureMessage(response: Response, fallback: string): Promise<string> {
   const body: unknown = await response.json().catch(() => null);
   if (body && typeof body === "object" && "error" in body) {

@@ -12,7 +12,7 @@ import { usePreferences } from "./preferences-context";
 type ChangeRow = { change:ApiChange; event:ApiEvent|null; source:ApiSource|null };
 
 export function LiveChangesFeed({ filters }:{ filters:FilterValues }) {
-  const { settings } = usePreferences();
+  const { settings, readOnly } = usePreferences();
   const [rows, setRows] = useState<ChangeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string|null>(null);
@@ -45,6 +45,7 @@ export function LiveChangesFeed({ filters }:{ filters:FilterValues }) {
   }, []);
 
   const filtered = useMemo(() => rows.filter((row) => matchesFilters(row, filters)), [filters, rows]);
+  if (readOnly) return <div className="read-only-notice">公开链接不展示内部版本和审计记录。</div>;
   return <section className="panel change-feed" aria-busy={loading}>
     <div className="panel-head"><div><h2>变更记录</h2><p>{loading ? "正在读取…" : error ? "数据不可用" : `${filtered.length} 条符合条件`}</p></div></div>
     {error && <div className="data-error" role="alert"><AlertCircle size={16} />{error}。当前不展示演示变更。</div>}

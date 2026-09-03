@@ -13,7 +13,7 @@ import { EventDrawer } from "./event-drawer";
 import { usePreferences } from "./preferences-context";
 
 export function LiveDailyWorkspace({ offsetDays = 0, filters, showPassed = false }: { offsetDays?:number; filters:FilterValues; showPassed?:boolean }) {
-  const { settings } = usePreferences();
+  const { settings, readOnly } = usePreferences();
   const date = useMemo(() => addDays(dateKeyInTimezone(new Date(), settings.timezone), offsetDays), [offsetDays, settings.timezone]);
   const [events, setEvents] = useState<ApiEvent[]>([]);
   const [selected, setSelected] = useState<ApiEvent | null>(null);
@@ -51,7 +51,7 @@ export function LiveDailyWorkspace({ offsetDays = 0, filters, showPassed = false
   return <>
     <div className="live-toolbar">
       <div>{loading ? <><RefreshCw className="spin" size={14} />正在读取事件…</> : error ? <>实时事件数据不可用</> : <>API 实时数据 · {events.length} 条</>}</div>
-      <button disabled={loading || Boolean(error)} onClick={() => setCreating(true)}><Plus size={14} />人工新增事件</button>
+      {!readOnly && <button disabled={loading || Boolean(error)} onClick={() => setCreating(true)}><Plus size={14} />人工新增事件</button>}
     </div>
     {error && <div className="data-error"><AlertCircle size={16} /><span>{error}。来源失败不等于当天没有事件。</span><button onClick={() => void load()}>重试</button><X size={14} /></div>}
     {!error && <DailyEvents events={calendarEvents} showPassed={showPassed} onSelect={select} timezone={settings.timezone} />}

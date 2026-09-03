@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isAccessRejection, isSelfReferentialOrigin, resolveApiOrigin } from "./route";
+import {
+  isAccessRejection,
+  isPublicApiAllowed,
+  isSelfReferentialOrigin,
+  resolveApiOrigin,
+  sanitizePublicEvents,
+} from "./route";
 
 describe("API proxy origin", () => {
   it("does not point a production Worker at its own loopback interface", () => {
@@ -40,5 +46,27 @@ describe("API proxy origin", () => {
       status:403,
       headers:{ "content-type":"application/json" },
     }))).toBe(false);
+  });
+
+  it("allows only public event and source reads in public mode", () => {
+    expect(isPublicApiAllowed("GET", ["v1", "events"], true)).toBe(true);
+    expect(isPublicApiAllowed("GET", ["v1", "events", "event-id"], true)).toBe(true);
+    expect(isPublicApiAllowed("GET", ["v1", "sources"], true)).toBe(true);
+    expect(isPublicApiAllowed("POST", ["v1", "sync"], true)).toBe(false);
+    expect(isPublicApiAllowed("GET", ["v1", "settings"], true)).toBe(false);
+    expect(isPublicApiAllowed("GET", ["v1", "changes"], true)).toBe(false);
+  });
+
+  it("removes manual events and private fields from public responses", () => {
+    expect(sanitizePublicEvents({
+      items:[
+        { id:"official", is_manual:false, notes:"private", reminder_enabled:true },
+        { id:"manual", is_manual:true, notes:"personal" },
+      ],
+      total:2,
+    })).toEqual({
+      items:[{ id:"official", is_manual:false, notes:null, reminder_enabled:false }],
+      total:1,
+    });
   });
 });

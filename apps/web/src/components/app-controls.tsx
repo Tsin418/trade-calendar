@@ -10,6 +10,7 @@ import { timezoneLabels } from "@/lib/date-time";
 import { usePreferences } from "./preferences-context";
 
 export function AppHeaderActions() {
+  const { readOnly } = usePreferences();
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -50,8 +51,10 @@ export function AppHeaderActions() {
   return <>
     <div className="actions">
       <button className="search" onClick={() => setSearchOpen(true)}><Search size={17} />搜索事件 <kbd>Ctrl K</kbd></button>
-      <button className="bell" aria-label="提醒设置" onClick={() => router.push("/settings#reminders")}><Bell size={18} /></button>
-      <button className="sync" disabled={syncing} onClick={() => void sync()}><RefreshCw className={syncing ? "spin" : ""} size={16} />{syncing ? "提交中…" : "立即同步"}</button>
+      {readOnly ? <span className="public-mode-badge"><Globe2 size={14} />公开只读</span> : <>
+        <button className="bell" aria-label="提醒设置" onClick={() => router.push("/settings#reminders")}><Bell size={18} /></button>
+        <button className="sync" disabled={syncing} onClick={() => void sync()}><RefreshCw className={syncing ? "spin" : ""} size={16} />{syncing ? "提交中…" : "立即同步"}</button>
+      </>}
     </div>
     {notice && <div className={`action-toast ${notice.tone}`} role={notice.tone === "error" ? "alert" : "status"}>{notice.text}<button aria-label="关闭提示" onClick={() => setNotice(null)}><X size={14} /></button></div>}
     {searchOpen && <div className="search-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSearchOpen(false); }}>
