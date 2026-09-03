@@ -103,6 +103,7 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             name="window_has_end",
         ),
         Index("ix_events_time_range", "starts_at", "ends_at"),
+        Index("ix_events_date_range", "date_range_start", "date_range_end"),
         Index("ix_events_local_date_importance", "local_date", "importance"),
         Index("ix_events_country_category", "country_code", "category"),
     )
@@ -127,6 +128,8 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     local_date: Mapped[date | None] = mapped_column(Date, index=True)
+    date_range_start: Mapped[date | None] = mapped_column(Date)
+    date_range_end: Mapped[date | None] = mapped_column(Date)
     original_timezone: Mapped[str | None] = mapped_column(String(64))
     original_time_text: Mapped[str | None] = mapped_column(String(255))
     reference_period: Mapped[str | None] = mapped_column(String(100))
@@ -224,6 +227,8 @@ class SourceObservation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     event_type: Mapped[str] = mapped_column(String(64))
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     local_date: Mapped[date | None] = mapped_column(Date)
+    date_range_start: Mapped[date | None] = mapped_column(Date)
+    date_range_end: Mapped[date | None] = mapped_column(Date)
     original_payload: Mapped[dict[str, Any]] = mapped_column(JSON)
     match_confidence: Mapped[float | None] = mapped_column(Float)
     match_reason: Mapped[str | None] = mapped_column(Text)

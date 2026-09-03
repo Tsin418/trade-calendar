@@ -159,6 +159,8 @@ class SyncRunner:
                 event_type=item.event_type,
                 starts_at=item.starts_at,
                 local_date=item.local_date,
+                date_range_start=item.date_range_start,
+                date_range_end=item.date_range_end,
                 original_payload=item.raw,
             )
             session.add(observation)
@@ -170,6 +172,8 @@ class SyncRunner:
             observation.title = item.title_original
             observation.starts_at = item.starts_at
             observation.local_date = item.local_date
+            observation.date_range_start = item.date_range_start
+            observation.date_range_end = item.date_range_end
             observation.original_payload = item.raw
 
         event = await session.get(Event, observation.event_id) if observation.event_id else None
@@ -236,6 +240,8 @@ class SyncRunner:
             starts_at=item.starts_at,
             ends_at=item.ends_at,
             local_date=item.local_date,
+            date_range_start=item.date_range_start,
+            date_range_end=item.date_range_end,
             original_timezone=item.original_timezone,
             original_time_text=item.original_time_text,
             reference_period=item.reference_period,
@@ -269,6 +275,8 @@ async def create_canonical_event(
         starts_at=item.starts_at,
         ends_at=item.ends_at,
         local_date=item.local_date,
+        date_range_start=item.date_range_start,
+        date_range_end=item.date_range_end,
         original_timezone=item.original_timezone,
         original_time_text=item.original_time_text,
         reference_period=item.reference_period,
@@ -326,6 +334,10 @@ def event_fingerprint(item: NormalizedEvent) -> str:
         "type": item.event_type,
         "starts_at": item.starts_at.astimezone(UTC).isoformat() if item.starts_at else None,
         "local_date": item.local_date.isoformat() if item.local_date else None,
+        "date_range_start": (
+            item.date_range_start.isoformat() if item.date_range_start else None
+        ),
+        "date_range_end": item.date_range_end.isoformat() if item.date_range_end else None,
         "status": item.status.value,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()

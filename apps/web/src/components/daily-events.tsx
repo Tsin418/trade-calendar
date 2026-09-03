@@ -3,7 +3,7 @@
 import { Bell, ChevronRight, Clock3, MessageSquareText } from "lucide-react";
 
 import { labels, type CalendarEvent } from "@/lib/demo-events";
-import { formatEventTime } from "@/lib/date-time";
+import { formatDateRange, formatEventTime } from "@/lib/date-time";
 
 export function DailyEvents({ events, showPassed = false, onSelect, timezone = "Asia/Shanghai" }: { events: CalendarEvent[]; showPassed?: boolean; onSelect?: (event:CalendarEvent) => void; timezone?:string }) {
   const timed = events.filter((event) => event.precision === "minute");
@@ -25,7 +25,7 @@ export function DailyEvents({ events, showPassed = false, onSelect, timezone = "
       </section>
       <aside className="panel tba-panel">
         <div className="panel-head"><div><h2>时间待定</h2><p>只展示日期，不伪造具体时间</p></div></div>
-        {tba.map((event) => <article className="tba-event" key={event.id}><i className={`impact-dot ${event.importance}`} /><div><h3>{event.title}</h3><p>{event.institution} · {event.country}</p><span>{labels.status[event.status]}</span></div><button aria-label={`查看 ${event.title}`} onClick={() => onSelect?.(event)}><ChevronRight size={16} /></button></article>)}
+        {tba.map((event) => <article className="tba-event" key={event.id}><i className={`impact-dot ${event.importance}`} /><div><h3>{event.title}</h3><p>{event.institution} · {event.country}</p><span>{formatDateRange(event.dateRangeStart ?? event.localDate, event.dateRangeEnd)} · {labels.status[event.status]}</span></div><button aria-label={`查看 ${event.title}`} onClick={() => onSelect?.(event)}><ChevronRight size={16} /></button></article>)}
         {tba.length === 0 && <EmptyState text="当天没有时间待定事件" />}
       </aside>
     </div>

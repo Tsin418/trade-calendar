@@ -28,6 +28,7 @@ from trade_calendar.schemas.events import EventCreate, EventUpdate
 VERSION_FIELDS = (
     "title_zh", "title_original", "institution", "country_code", "category", "event_type",
     "status", "importance", "date_precision", "starts_at", "ends_at", "local_date",
+    "date_range_start", "date_range_end",
     "original_timezone", "original_time_text", "reference_period", "market_tags", "tickers",
     "notes", "reminder_enabled", "is_deleted",
 )
@@ -76,7 +77,9 @@ def classify_change(before: dict[str, Any] | None, after: dict[str, Any]) -> str
         return "created"
     if before.get("status") != "cancelled" and after.get("status") == "cancelled":
         return "cancelled"
-    time_fields = {"starts_at", "ends_at", "local_date"}
+    time_fields = {
+        "starts_at", "ends_at", "local_date", "date_range_start", "date_range_end",
+    }
     if any(before.get(field) != after.get(field) for field in time_fields):
         if before.get("starts_at") is None and after.get("starts_at") is not None:
             return "time_confirmed"
@@ -214,6 +217,15 @@ def _validate_event_time(event: Event) -> None:
         raise ApiError(422, "invalid_time_window", "时间窗口必须提供 ends_at")
     if event.starts_at and event.ends_at and event.ends_at <= event.starts_at:
         raise ApiError(422, "invalid_time_window", "ends_at 必须晚于 starts_at")
+    if (event.date_range_start is None) != (event.date_range_end is None):
+        raise ApiError(422, "invalid_date_range", "日期范围必须同时提供开始和结束日期")
+    if event.date_range_start and event.date_range_end:
+        if event.date_range_end < event.date_range_start:
+            raise ApiError(422, "invalid_date_range", "日期范围结束日期不能早于开始日期")
+        if event.local_date and not (
+            event.date_range_start <= event.local_date <= event.date_range_end
+        ):
+            raise ApiError(422, "invalid_date_range", "事件日期必须位于日期范围内")
 
 
 async def _record_version(
@@ -255,18 +267,26 @@ def event_query(
     statement = select(Event).where(Event.is_deleted.is_(False))
     local_from = from_date or (from_at.date() if from_at else None)
     local_to = to_date or (to_at.date() if to_at else None)
+    local_after = (
+        or_(Event.local_date >= local_from, Event.date_range_end >= local_from)
+        if local_from else None
+    )
+    local_before = (
+        or_(Event.local_date < local_to, Event.date_range_start < local_to)
+        if local_to else None
+    )
     if from_at and local_from:
-        statement = statement.where(or_(Event.starts_at >= from_at, Event.local_date >= local_from))
+        statement = statement.where(or_(Event.starts_at >= from_at, local_after))
     elif from_at:
         statement = statement.where(Event.starts_at >= from_at)
     elif local_from:
-        statement = statement.where(Event.local_date >= local_from)
+        statement = statement.where(local_after)
     if to_at and local_to:
-        statement = statement.where(or_(Event.starts_at < to_at, Event.local_date < local_to))
+        statement = statement.where(or_(Event.starts_at < to_at, local_before))
     elif to_at:
         statement = statement.where(Event.starts_at < to_at)
     elif local_to:
-        statement = statement.where(Event.local_date < local_to)
+        statement = statement.where(local_before)
     if country:
         statement = statement.where(Event.country_code == country.upper())
     if market:

@@ -32,6 +32,8 @@ def test_fomc_fixture_parses_without_inventing_decision_time() -> None:
     assert len(normalized) == 3
     assert normalized[1].source_event_id == "fomc-2026-02"
     assert normalized[1].local_date == date(2026, 9, 16)
+    assert normalized[1].date_range_start == date(2026, 9, 15)
+    assert normalized[1].date_range_end == date(2026, 9, 16)
     assert normalized[1].starts_at is None
     assert normalized[1].date_precision == DatePrecision.DATE
     assert normalized[1].importance == Importance.CRITICAL

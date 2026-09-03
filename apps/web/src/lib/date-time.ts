@@ -42,6 +42,22 @@ export function formatEventDateTime(value:string, timezone:string):string {
   }).format(new Date(value));
 }
 
+export function formatDateRange(start:string | null | undefined, end?:string | null):string {
+  if (!start) return "日期待定";
+  const finish = end || start;
+  const startParts = parseDateKey(start);
+  const endParts = parseDateKey(finish);
+  if (!startParts || !endParts) return start === finish ? start : `${start}–${finish}`;
+  if (start === finish) return `${startParts.month}月${startParts.day}日`;
+  if (startParts.year !== endParts.year) {
+    return `${startParts.year}年${startParts.month}月${startParts.day}日–${endParts.year}年${endParts.month}月${endParts.day}日`;
+  }
+  if (startParts.month === endParts.month) {
+    return `${startParts.month}月${startParts.day}–${endParts.day}日`;
+  }
+  return `${startParts.month}月${startParts.day}日–${endParts.month}月${endParts.day}日`;
+}
+
 export function zonedDayRange(dateKey:string, timezone:string):{ start:Date; end:Date } {
   return { start:zonedDateStart(dateKey, timezone), end:zonedDateStart(addDays(dateKey, 1), timezone) };
 }
@@ -65,4 +81,11 @@ function timezoneOffset(value:Date, timezone:string):number {
   }).formatToParts(value);
   const number = (type:string) => Number(parts.find((item) => item.type === type)?.value ?? 0);
   return Date.UTC(number("year"), number("month") - 1, number("day"), number("hour"), number("minute"), number("second")) - value.getTime();
+}
+
+function parseDateKey(value:string):{ year:number; month:number; day:number } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return match
+    ? { year:Number(match[1]), month:Number(match[2]), day:Number(match[3]) }
+    : null;
 }

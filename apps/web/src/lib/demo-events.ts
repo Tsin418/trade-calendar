@@ -11,6 +11,8 @@ export type CalendarEvent = {
   precision: "minute" | "date";
   start?: string;
   localDate?: string;
+  dateRangeStart?: string;
+  dateRangeEnd?: string;
   originalTime?: string;
   source: string;
 };

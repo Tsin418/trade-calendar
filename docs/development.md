@@ -41,8 +41,7 @@ cd apps/api
 ## 时间与数据规则
 
 - 所有带时间事件写入 API 时必须包含 UTC offset；数据库存 UTC。
-- 仅日期事件只写 `local_date`，不得填写 `starts_at`。
+- 仅日期事件写 `local_date`，可选写入成对的 `date_range_start/date_range_end`，不得填写 `starts_at`。
 - `date_precision=window` 必须同时有 `starts_at` 与 `ends_at`。
 - 人工创建通过内建 `manual` 来源建立来源关系；正式事件不能成为无来源记录。
 - 重复写入使用 `idempotency_key`，同一内容不会产生重复版本。
-

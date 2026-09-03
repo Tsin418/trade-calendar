@@ -21,6 +21,8 @@ class EventBase(BaseModel):
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     local_date: date | None = None
+    date_range_start: date | None = None
+    date_range_end: date | None = None
     original_timezone: str | None = Field(default=None, max_length=64)
     original_time_text: str | None = Field(default=None, max_length=255)
     reference_period: str | None = Field(default=None, max_length=100)
@@ -47,6 +49,15 @@ class EventBase(BaseModel):
             raise ValueError("ends_at 必须包含时区")
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValueError("ends_at 必须晚于 starts_at")
+        if (self.date_range_start is None) != (self.date_range_end is None):
+            raise ValueError("日期范围必须同时提供开始和结束日期")
+        if self.date_range_start and self.date_range_end:
+            if self.date_range_end < self.date_range_start:
+                raise ValueError("日期范围结束日期不能早于开始日期")
+            if self.local_date and not (
+                self.date_range_start <= self.local_date <= self.date_range_end
+            ):
+                raise ValueError("事件日期必须位于日期范围内")
         if self.original_timezone:
             try:
                 ZoneInfo(self.original_timezone)
@@ -83,6 +94,8 @@ class EventUpdate(BaseModel):
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     local_date: date | None = None
+    date_range_start: date | None = None
+    date_range_end: date | None = None
     original_timezone: str | None = Field(default=None, max_length=64)
     original_time_text: str | None = Field(default=None, max_length=255)
     reference_period: str | None = Field(default=None, max_length=100)
@@ -110,6 +123,8 @@ class EventRead(BaseModel):
     starts_at: datetime | None
     ends_at: datetime | None
     local_date: date | None
+    date_range_start: date | None
+    date_range_end: date | None
     original_timezone: str | None
     original_time_text: str | None
     reference_period: str | None

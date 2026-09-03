@@ -79,6 +79,8 @@ export function toCalendarEvent(event:ApiEvent): CalendarEvent {
     precision,
     start:event.starts_at ?? undefined,
     localDate:event.local_date ?? undefined,
+    dateRangeStart:event.date_range_start ?? undefined,
+    dateRangeEnd:event.date_range_end ?? undefined,
     originalTime:event.original_time_text ?? undefined,
     source:event.is_manual ? "人工来源" : event.institution,
   };

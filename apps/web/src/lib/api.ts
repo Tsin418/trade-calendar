@@ -13,6 +13,8 @@ export type ApiEvent = {
   starts_at: string | null;
   ends_at: string | null;
   local_date: string | null;
+  date_range_start: string | null;
+  date_range_end: string | null;
   original_timezone: string | null;
   original_time_text: string | null;
   reference_period: string | null;

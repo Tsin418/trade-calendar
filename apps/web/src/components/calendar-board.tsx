@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { EventDrawer } from "@/components/event-drawer";
 import { type ApiEvent, fetchEvents } from "@/lib/api";
-import { dateKeyInTimezone } from "@/lib/date-time";
+import { addDays, dateKeyInTimezone, formatDateRange } from "@/lib/date-time";
 import { appendFilters, type FilterValues } from "@/lib/filters";
 import { labels } from "@/lib/demo-events";
 
@@ -47,13 +47,21 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
     const timer = window.setTimeout(() => void load(range.start, range.end), 0);
     return () => window.clearTimeout(timer);
   }, [load, range]);
-  const calendarEvents = events.map((event) => ({
-    id: event.id,
-    title: `${labels.importance[event.importance]} · ${event.title_zh}`,
-    start: event.starts_at ?? event.local_date ?? undefined,
-    allDay: event.date_precision === "date",
-    classNames: [`fc-impact-${event.importance}`, `fc-status-${event.status}`],
-  }));
+  const calendarEvents = events.map((event) => {
+    const dateRange = event.date_range_start && event.date_range_end
+      ? `${formatDateRange(event.date_range_start, event.date_range_end)} · `
+      : "";
+    return {
+      id: event.id,
+      title: `${dateRange}${labels.importance[event.importance]} · ${event.title_zh}`,
+      start: event.starts_at ?? event.date_range_start ?? event.local_date ?? undefined,
+      end: event.starts_at
+        ? event.ends_at ?? undefined
+        : event.date_range_end ? addDays(event.date_range_end, 1) : undefined,
+      allDay: event.date_precision === "date",
+      classNames: [`fc-impact-${event.importance}`, `fc-status-${event.status}`],
+    };
+  });
   return (
     <>
     {error && <div className="data-error" role="alert">{error}。请同时检查数据源页面。</div>}
@@ -73,6 +81,9 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
         dayMaxEvents={3}
         nowIndicator
         eventDisplay="block"
+        displayEventTime
+        displayEventEnd
+        eventTimeFormat={{ hour:"2-digit", minute:"2-digit", hour12:false }}
         datesSet={(info) => setRange({ start:info.start, end:info.end })}
         eventClick={(info) => setSelected(events.find((event) => event.id === info.event.id) ?? null)}
       />

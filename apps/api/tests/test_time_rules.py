@@ -44,3 +44,23 @@ def test_unknown_precision_does_not_require_fake_time() -> None:
     })
     assert event.starts_at is None
 
+
+def test_date_range_requires_ordered_boundaries_containing_event_date() -> None:
+    with pytest.raises(ValidationError):
+        EventCreate.model_validate({
+            **base_payload(),
+            "date_precision": "date",
+            "local_date": "2026-09-16",
+            "date_range_start": "2026-09-17",
+            "date_range_end": "2026-09-18",
+        })
+
+    event = EventCreate.model_validate({
+        **base_payload(),
+        "date_precision": "date",
+        "local_date": "2026-09-16",
+        "date_range_start": "2026-09-15",
+        "date_range_end": "2026-09-16",
+    })
+    assert event.date_range_start == date(2026, 9, 15)
+    assert event.date_range_end == date(2026, 9, 16)

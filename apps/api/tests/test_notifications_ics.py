@@ -80,6 +80,30 @@ async def test_date_only_event_has_no_minute_notifications(client: AsyncClient) 
     assert component.get("X-TIME-PRECISION") == "DATE"
 
 
+async def test_date_range_uses_an_inclusive_all_day_span_in_ics(client: AsyncClient) -> None:
+    response = await client.post("/api/v1/events", json={
+        "title_zh": "FOMC 利率决议",
+        "institution": "Federal Reserve",
+        "country_code": "US",
+        "category": "monetary_policy",
+        "event_type": "central_bank_decision",
+        "status": "tba",
+        "importance": "critical",
+        "date_precision": "date",
+        "local_date": "2026-09-16",
+        "date_range_start": "2026-09-15",
+        "date_range_end": "2026-09-16",
+        "original_timezone": "America/New_York",
+    })
+    assert response.status_code == 201
+    preview = await client.get(
+        f"/api/v1/events/{response.json()['id']}/calendar-preview"
+    )
+    component = next(iter(Calendar.from_ical(preview.content).walk("VEVENT")))
+    assert component.decoded("DTSTART").isoformat() == "2026-09-15"
+    assert component.decoded("DTEND").isoformat() == "2026-09-17"
+
+
 async def test_ics_uid_stays_stable_after_reschedule_and_cancellation(
     client: AsyncClient, minute_event_payload: dict[str, object]
 ) -> None:

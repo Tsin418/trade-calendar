@@ -41,8 +41,10 @@ def build_ics_event(event: Event, public_base_url: str) -> ICalEvent:
     if event.date_precision == DatePrecision.DATE:
         if event.local_date is None:
             raise ValueError("date-only event is missing local_date")
-        item.add("dtstart", event.local_date)
-        item.add("dtend", event.local_date + timedelta(days=1))
+        start_date = event.date_range_start or event.local_date
+        end_date = event.date_range_end or event.local_date
+        item.add("dtstart", start_date)
+        item.add("dtend", end_date + timedelta(days=1))
         item.add("x-time-precision", "DATE")
     elif event.starts_at is not None:
         item.add("dtstart", _as_utc(event.starts_at))

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from trade_calendar.core.database import get_session
 from trade_calendar.core.errors import ApiError
 from trade_calendar.models.domain import FetchRun, Source
+from trade_calendar.scheduling import refresh_stale_sources
 from trade_calendar.schemas.sources import FetchRunRead, SourceRead
 from trade_calendar.source_registry import adapter_registry, seed_sources
 from trade_calendar.sync import make_run
@@ -19,6 +20,7 @@ router = APIRouter(tags=["sources"])
 async def list_sources(session: AsyncSession = Depends(get_session)) -> list[SourceRead]:
     if await session.scalar(select(Source.id).limit(1)) is None:
         await seed_sources(session)
+    await refresh_stale_sources(session)
     sources = await session.scalars(
         select(Source).order_by(Source.priority.asc(), Source.country_code.asc(), Source.name.asc())
     )
@@ -92,4 +94,3 @@ async def get_job(
     if run is None:
         raise ApiError(404, "job_not_found", "同步任务不存在")
     return FetchRunRead.model_validate(run)
-

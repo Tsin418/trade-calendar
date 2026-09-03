@@ -32,6 +32,8 @@ class SourceEvent(BaseModel):
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     local_date: date | None = None
+    date_range_start: date | None = None
+    date_range_end: date | None = None
     original_timezone: str | None = None
     original_time_text: str | None = None
     reference_period: str | None = None
@@ -54,6 +56,8 @@ class NormalizedEvent(BaseModel):
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     local_date: date | None = None
+    date_range_start: date | None = None
+    date_range_end: date | None = None
     original_timezone: str | None = None
     original_time_text: str | None = None
     reference_period: str | None = None
@@ -75,6 +79,15 @@ class NormalizedEvent(BaseModel):
                 raise ValueError("timed event requires timezone-aware starts_at")
         if self.date_precision == DatePrecision.WINDOW and self.ends_at is None:
             raise ValueError("window event requires ends_at")
+        if (self.date_range_start is None) != (self.date_range_end is None):
+            raise ValueError("date range requires both start and end")
+        if self.date_range_start and self.date_range_end:
+            if self.date_range_end < self.date_range_start:
+                raise ValueError("date range end must not precede start")
+            if self.local_date and not (
+                self.date_range_start <= self.local_date <= self.date_range_end
+            ):
+                raise ValueError("local_date must fall within the date range")
         return self
 
 

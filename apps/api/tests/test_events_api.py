@@ -85,6 +85,39 @@ async def test_date_range_excludes_date_only_events_at_the_end_boundary(
     assert [item["local_date"] for item in result.json()["items"]] == ["2026-09-02"]
 
 
+async def test_date_range_event_is_returned_on_each_overlapping_day(
+    client: AsyncClient,
+) -> None:
+    created = await client.post("/api/v1/events", json={
+        "title_zh": "FOMC 利率决议",
+        "institution": "Federal Reserve",
+        "country_code": "US",
+        "category": "monetary_policy",
+        "event_type": "central_bank_decision",
+        "status": "tba",
+        "importance": "critical",
+        "date_precision": "date",
+        "local_date": "2026-09-16",
+        "date_range_start": "2026-09-15",
+        "date_range_end": "2026-09-16",
+        "original_timezone": "America/New_York",
+    })
+    assert created.status_code == 201
+    assert created.json()["date_range_start"] == "2026-09-15"
+
+    for day, next_day in (("2026-09-15", "2026-09-16"), ("2026-09-16", "2026-09-17")):
+        result = await client.get(
+            "/api/v1/events", params={"from_date": day, "to_date": next_day}
+        )
+        assert [item["id"] for item in result.json()["items"]] == [created.json()["id"]]
+
+    outside = await client.get(
+        "/api/v1/events",
+        params={"from_date": "2026-09-17", "to_date": "2026-09-18"},
+    )
+    assert outside.json()["items"] == []
+
+
 async def test_tba_to_specific_time_creates_one_change(client: AsyncClient) -> None:
     create = await client.post(
         "/api/v1/events",

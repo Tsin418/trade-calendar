@@ -19,7 +19,7 @@
 
 ## 核心场景证据
 
-- 仅日期事件只生成 `local_date`，API 和 ICS 均不生成午夜时间；
+- 仅日期事件生成 `local_date`；可选日期范围在 API 中保留，并在 ICS 中生成跨日全天范围，不伪造午夜时间；
 - TBA 补充具体时间产生 `time_confirmed` 变更；
 - 改期保留旧版本，ICS UID 不变、`SEQUENCE` 增加；
 - 相同人工写入、相同 Adapter Fixture 重跑不增加事件或版本；
