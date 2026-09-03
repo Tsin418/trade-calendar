@@ -19,15 +19,16 @@ from trade_calendar.models.domain import (
     Source,
     SourceHealth,
 )
+from trade_calendar.services import normalize_title
 from trade_calendar.sync import SyncRunner, make_run
 
-FIXTURE = Path(__file__).parent / "fixtures" / "bls" / "calendar.ics"
+FIXTURE = Path(__file__).parent / "fixtures" / "bls" / "calendar.json"
 FED_FIXTURE = Path(__file__).parent / "fixtures" / "fed" / "fomc-calendar.html"
 
 
 class FixtureBlsAdapter(BlsCalendarAdapter):
     def __init__(self, content: bytes) -> None:
-        super().__init__(HttpFetcher(user_agent="test-suite"))
+        super().__init__()
         self.content = content
 
     async def fetch(self) -> RawPayload:
@@ -48,6 +49,14 @@ class FixtureFedAdapter(FedFomcAdapter):
         )
 
 
+class AlternateIdBlsAdapter(FixtureBlsAdapter):
+    def parse(self, payload: RawPayload) -> list[SourceEvent]:
+        events = super().parse(payload)
+        for event in events:
+            event.source_event_id = f"migrated:{event.source_event_id}"
+        return events
+
+
 class AlternateIdFedAdapter(FixtureFedAdapter):
     def parse(self, payload: RawPayload) -> list[SourceEvent]:
         events = super().parse(payload)
@@ -62,8 +71,8 @@ async def make_source(session: AsyncSession, key: str = "us_bls_calendar") -> So
         name="BLS Fixture",
         institution="U.S. Bureau of Labor Statistics",
         country_code="US",
-        official_url="https://www.bls.gov/schedule/news_release/bls.ics",
-        source_type="ics",
+        official_url="https://open.longbridge.com/docs/market/calendar/macro-calendar",
+        source_type="api",
         priority=10,
         enabled=True,
         health=SourceHealth.STALE,
@@ -104,21 +113,24 @@ async def test_sync_is_idempotent_and_keeps_snapshots(
     second_result = await runner.execute(second.id, adapter)
 
     assert first_result.status == RunStatus.SUCCEEDED
-    assert first_result.created_count == 3
+    assert first_result.created_count == 6
     assert second_result.status == RunStatus.SUCCEEDED
     assert second_result.created_count == 0
     assert second_result.updated_count == 0
 
     async with session_factory() as session:
-        assert await session.scalar(select(func.count(Event.id))) == 3
-        assert await session.scalar(select(func.count(EventVersion.id))) == 3
+        assert await session.scalar(select(func.count(Event.id))) == 6
+        assert await session.scalar(select(func.count(EventVersion.id))) == 6
 
 
 async def test_source_reschedule_updates_original_event(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     original = FIXTURE.read_bytes()
-    changed = original.replace(b"20260904T", b"20260905T")
+    changed = original.replace(
+        b"1788525000",
+        b"1788611400",
+    )
     first_adapter = FixtureBlsAdapter(original)
     second_adapter = FixtureBlsAdapter(changed)
     async with session_factory() as session:
@@ -149,11 +161,39 @@ async def test_source_reschedule_updates_original_event(
         assert change.change_type == "rescheduled"
 
 
+async def test_provider_migration_matches_original_title_when_cache_is_localized(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    original = FixtureBlsAdapter(FIXTURE.read_bytes())
+    migrated = AlternateIdBlsAdapter(FIXTURE.read_bytes())
+    async with session_factory() as session:
+        source = await make_source(session)
+        source_id = source.id
+    runner = SyncRunner(session_factory)
+    first = await queue_run(session_factory, source_id, original)
+    await runner.execute(first.id, original)
+
+    async with session_factory() as session:
+        events = list(await session.scalars(select(Event)))
+        for event in events:
+            event.normalized_title = normalize_title(event.title_zh)
+        await session.commit()
+
+    second = await queue_run(session_factory, source_id, migrated)
+    result = await runner.execute(second.id, migrated)
+
+    assert result.status == RunStatus.SUCCEEDED
+    assert result.created_count == 0
+    async with session_factory() as session:
+        assert await session.scalar(select(func.count(Event.id))) == 6
+        assert await session.scalar(select(func.count(EventSource.id))) == 6
+
+
 async def test_failed_empty_result_never_deletes_existing_events(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     valid = FixtureBlsAdapter(FIXTURE.read_bytes())
-    empty = FixtureBlsAdapter(b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n")
+    empty = FixtureBlsAdapter(b'{"status":"ok","result":[]}')
     async with session_factory() as session:
         source = await make_source(session)
         source_id = source.id
@@ -166,9 +206,9 @@ async def test_failed_empty_result_never_deletes_existing_events(
     assert result.status == RunStatus.FAILED
     assert result.error_type == "structure_changed"
     async with session_factory() as session:
-        assert await session.scalar(select(func.count(Event.id))) == 3
+        assert await session.scalar(select(func.count(Event.id))) == 6
         links = await session.scalar(select(func.count(EventSource.id)))
-        assert links == 3
+        assert links == 6
 
 
 async def test_recurring_same_title_on_different_dates_are_distinct_events(

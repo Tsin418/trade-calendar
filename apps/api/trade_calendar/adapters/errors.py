@@ -29,10 +29,13 @@ class ParseError(AdapterError):
     code = "parse_error"
 
 
+class AuthenticationError(AdapterError):
+    code = "authentication_error"
+
+
 class TimezoneError(ParseError):
     code = "timezone_error"
 
 
 class EmptyResultError(AdapterError):
     code = "unexpected_empty_result"
-

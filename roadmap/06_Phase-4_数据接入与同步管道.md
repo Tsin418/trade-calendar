@@ -139,15 +139,18 @@
 - 实际开始日期：2026-09-02
 - 实际完成日期：待填写
 - 实际投入：待填写
-- 已接入来源：Fed FOMC、BEA、BOJ MPM/发布日程、BOK、台湾 CBC/DGBAS、香港 C&SD/HKEX；10 个启用来源均已有 Adapter
-- 受阻来源：BLS ICS Adapter 已实现，但当前运行网络被官方 Akamai 返回 HTTP 403
+- 已接入来源：Fed FOMC、BEA、BOJ MPM/发布日程、BOK、台湾 CBC/DGBAS、HKEX，
+  以及 Finnhub/JPX/KRX KIND/TWSE 公司财报；香港 C&SD 宏观来源按用户要求停用
+- 替代来源：BLS 官方 ICS/HTML 均被上游返回 HTTP 403；已通过 Longbridge 宏观日历
+  Adapter 3.0.0 和容器独立最小权限 OAuth 恢复，TradingView 保留为降级方案
 - 延后来源：Statistics Korea 按配置保持停用，启用前需重新确认解析入口与访问条款
 - Adapter 与配置位置：`apps/api/trade_calendar/adapters/`、`config/sources.yaml`
-- Fixture 和自动化测试结果：全部启用来源均有解析回归；真实官方入口只读验证中除 BLS 403 外均通过；SDK、HTTP 重试、JSON/HTML/ICS/PDF 能力已建立
+- Fixture 和自动化测试结果：全部启用来源均有解析回归；BLS 官方入口 403，但 Longbridge
+  CLI API 已真实同步通过；SDK、CLI、HTTP 重试、JSON/HTML/ICS/PDF 能力已建立
 - 去重准确性抽样：周期性同名不同日期、来源 ID 重发、同批重跑均有回归测试；真实 Fed 重跑新增 0、更新 0
 - 变更识别准确性抽样：Fixture 改期保留原事件并生成 `rescheduled`
 - 空结果保护验证：通过，失败运行不删除 3 条既有 Fixture 事件
-- 缺陷数量及级别：P0 0 / P1 0 / P2 1（BLS 403）
+- 缺陷数量及级别：P0 0 / P1 0 / P2 1（BLS 当前依赖已授权次级日程）
 - 遗留数据风险：重复链接已由 Migration `246ffc20abda` 精确清理并收紧唯一约束；当前重复链接 0
 - 质量评分：92 / 100
 - 验收结论：待验收

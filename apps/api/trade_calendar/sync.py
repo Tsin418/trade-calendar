@@ -316,13 +316,17 @@ async def find_match(
     uncertain = 0.0
     for candidate in candidates:
         candidate_date = candidate.starts_at.date() if candidate.starts_at else candidate.local_date
-        similarity = SequenceMatcher(None, normalized, candidate.normalized_title).ratio()
+        candidate_title = normalize_title(candidate.title_original or candidate.title_zh)
+        similarity = SequenceMatcher(None, normalized, candidate_title).ratio()
         if (
             item.reference_period
             and candidate.reference_period
             and item.reference_period.casefold() == candidate.reference_period.casefold()
+            and normalized == candidate_title
         ):
-            return candidate, 0.99, "institution + event_type + reference period"
+            return candidate, 0.99, (
+                "institution + event_type + reference period + normalized title"
+            )
         if candidate_date == target_date and similarity >= 0.93:
             return candidate, 0.98, "institution + event_type + date + normalized title"
         if candidate_date == target_date:

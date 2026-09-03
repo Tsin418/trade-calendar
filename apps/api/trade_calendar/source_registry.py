@@ -13,7 +13,6 @@ from trade_calendar.adapters import (
     BokMeetingAdapter,
     FedFomcAdapter,
     HkexCalendarAdapter,
-    HongKongStatisticsAdapter,
     HttpFetcher,
     SourceAdapter,
     TaiwanCbcMeetingAdapter,
@@ -93,14 +92,13 @@ def adapter_registry(settings: Settings | None = None) -> dict[str, SourceAdapte
     companies = load_company_watchlist(settings.config_dir)
     registry: dict[str, SourceAdapter] = {
         "fed_fomc_calendar": FedFomcAdapter(fetcher),
-        "us_bls_calendar": BlsCalendarAdapter(fetcher),
+        "us_bls_calendar": BlsCalendarAdapter(),
         "us_bea_schedule": BeaScheduleAdapter(fetcher),
         "boj_mpm": BojMeetingAdapter(fetcher),
         "boj_release_schedule": BojReleaseScheduleAdapter(fetcher),
         "bok_mpb": BokMeetingAdapter(fetcher),
         "taiwan_cbc": TaiwanCbcMeetingAdapter(fetcher),
         "taiwan_dgbas_calendar": TaiwanStatisticsAdapter(fetcher),
-        "hk_censtatd_schedule": HongKongStatisticsAdapter(fetcher),
         "hkex_calendar": HkexCalendarAdapter(fetcher),
         "jpx_earnings_schedule": JpxEarningsScheduleAdapter(fetcher, companies),
         "krx_kind_earnings_calls": KrxKindEarningsCallAdapter(fetcher, companies),

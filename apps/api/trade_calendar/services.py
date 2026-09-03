@@ -184,8 +184,10 @@ async def update_event(
             updates[key] = value.astimezone(UTC)
     if "country_code" in updates and updates["country_code"]:
         updates["country_code"] = updates["country_code"].upper()
-    if "title_zh" in updates:
-        event.normalized_title = normalize_title(updates["title_zh"])
+    if "title_original" in updates or "title_zh" in updates:
+        title_for_matching = updates.get("title_original") or updates.get("title_zh")
+        if title_for_matching:
+            event.normalized_title = normalize_title(title_for_matching)
     for key, value in updates.items():
         setattr(event, key, value)
     _validate_event_time(event)

@@ -69,6 +69,8 @@ services:
     command: ["python", "/app/worker/main.py"]
     environment: *app-environment
     env_file: *app-env-files
+    volumes:
+      - longbridge_auth:/home/calendar/.longbridge/openapi
     depends_on:
       db:
         condition: service_healthy
@@ -107,3 +109,4 @@ services:
 
 volumes:
   postgres_data:
+  longbridge_auth:

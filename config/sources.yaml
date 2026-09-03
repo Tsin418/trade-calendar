@@ -22,19 +22,19 @@ sources:
     terms: Public official website; apply conservative request rate and attribution.
     fallback: Federal Reserve public calendar and press releases
   - id: us_bls_calendar
-    name: U.S. BLS Release Calendar
-    institution: U.S. Bureau of Labor Statistics
+    name: Longbridge U.S. BLS Macro Calendar
+    institution: Longbridge (BLS-attributed releases)
     country: US
-    official_url: https://www.bls.gov/schedule/news_release/bls.ics
-    type: ics
+    official_url: https://open.longbridge.com/docs/market/calendar/macro-calendar
+    type: api
     categories: [macro_release]
-    priority: 10
-    role: primary
+    priority: 40
+    role: secondary
     fetch_schedule: "15 */6 * * *"
-    expected_items: {min: 20, max: 400}
+    expected_items: {min: 10, max: 150}
     stale_after_hours: 48
-    terms: Public U.S. government calendar; retain source attribution.
-    fallback: https://www.bls.gov/schedule/
+    terms: Authorized Longbridge OpenAPI calendar for private single-user use; retain attribution.
+    fallback: TradingView economic calendar; BLS official schedule for manual verification
   - id: us_bea_schedule
     name: U.S. BEA News Schedule
     institution: U.S. Bureau of Economic Analysis
@@ -140,6 +140,7 @@ sources:
     country: HK
     official_url: https://www.censtatd.gov.hk/en/page_898.html
     type: pdf
+    enabled: false
     categories: [macro_release]
     priority: 10
     role: primary

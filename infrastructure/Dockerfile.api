@@ -4,7 +4,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN addgroup --system calendar && adduser --system --ingroup calendar calendar
+ADD --checksum=sha256:8f9f11fe79e3520ee0542e5f2f645b16632d76fedebbbda7e365d3a2c55e6c86 \
+    https://assets.lbkrs.com/github/release/longbridge-terminal/v0.28.4/longbridge-terminal-linux-musl-amd64.tar.gz \
+    /tmp/longbridge.tar.gz
+
+RUN addgroup --system calendar \
+    && adduser --system --ingroup calendar --home /home/calendar calendar \
+    && install -d -o calendar -g calendar /home/calendar/.longbridge/openapi \
+    && tar -xzf /tmp/longbridge.tar.gz -C /usr/local/bin \
+    && chmod 0755 /usr/local/bin/longbridge \
+    && rm /tmp/longbridge.tar.gz
 
 WORKDIR /app
 COPY apps/api/pyproject.toml ./

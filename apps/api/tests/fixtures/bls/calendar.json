@@ -1,0 +1,122 @@
+{
+  "provider": "Longbridge",
+  "from": "2026-08-03",
+  "to": "2027-03-02",
+  "list": [
+    {
+      "date": "2026-08-06",
+      "infos": [
+        {
+          "id": "productivity-preliminary",
+          "market": "US",
+          "content": "美国, 非农生产率初值",
+          "datetime": "1786019400",
+          "star": 2,
+          "ext": {"period": "2026-04-01", "unit": "百分比"},
+          "data_kv": []
+        }
+      ]
+    },
+    {
+      "date": "2026-09-03",
+      "infos": [
+        {
+          "id": "productivity-final",
+          "market": "US",
+          "content": "美国, 非农生产率修正值",
+          "datetime": "1788438600",
+          "star": 2,
+          "ext": {"period": "2026 Q2", "unit": "百分比"},
+          "data_kv": []
+        }
+      ]
+    },
+    {
+      "date": "2026-09-04",
+      "infos": [
+        {
+          "id": "nonfarm-payrolls",
+          "market": "US",
+          "content": "美国, 非农就业岗位",
+          "datetime": "1788525000",
+          "star": 3,
+          "ext": {"period": "2026-08-01", "unit": "人"},
+          "data_kv": [
+            {"type": "previous", "value": "30"},
+            {"type": "estimate", "value": "80"},
+            {"type": "actual", "value": "--"}
+          ]
+        },
+        {
+          "id": "unemployment-rate",
+          "market": "US",
+          "content": "美国, 失业率",
+          "datetime": "1788525000",
+          "star": 3,
+          "ext": {"period": "2026-08", "unit": "百分比"},
+          "data_kv": []
+        }
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "infos": [
+        {
+          "id": "ppi-headline",
+          "market": "US",
+          "content": "美国, 最终需求PPI",
+          "datetime": "1789043400",
+          "star": 3,
+          "ext": {"period": "2026-08", "unit": "百分比"},
+          "data_kv": []
+        }
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "infos": [
+        {
+          "id": "cpi-headline",
+          "market": "US",
+          "content": "美国, CPI",
+          "datetime": "1789129800",
+          "star": 3,
+          "ext": {"period": "2026-08", "unit": "百分比"},
+          "data_kv": []
+        },
+        {
+          "id": "cpi-core",
+          "market": "US",
+          "content": "美国, 核心 CPI",
+          "datetime": "1789129800",
+          "star": 3,
+          "ext": {"period": "2026-08", "unit": "百分比"},
+          "data_kv": []
+        }
+      ]
+    },
+    {
+      "date": "2026-09-29",
+      "infos": [
+        {
+          "id": "jolts-openings",
+          "market": "US",
+          "content": "美国, JOLTS职位空缺",
+          "datetime": "1790690400",
+          "star": 3,
+          "ext": {"period": "2026-08", "unit": "人"},
+          "data_kv": []
+        },
+        {
+          "id": "ignored-eu-cpi",
+          "market": "EU",
+          "content": "欧元区, CPI初值",
+          "datetime": "1790690400",
+          "star": 3,
+          "ext": {"period": "2026-08", "unit": "百分比"},
+          "data_kv": []
+        }
+      ]
+    }
+  ]
+}
