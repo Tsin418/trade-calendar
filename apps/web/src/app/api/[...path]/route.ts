@@ -85,11 +85,15 @@ type PrivateApiBinding = {
   fetch(input: Request): Promise<Response>;
 };
 
-async function privateApiBinding(): Promise<PrivateApiBinding|null> {
+type RuntimeEnvironment = CloudflareEnv & {
+  CALENDAR_API?:PrivateApiBinding;
+  PUBLIC_READ_ONLY?:string;
+};
+
+async function runtimeEnvironment(): Promise<RuntimeEnvironment|null> {
   try {
     const { env } = await getCloudflareContext({ async:true });
-    const binding = (env as CloudflareEnv & { CALENDAR_API?: PrivateApiBinding }).CALENDAR_API;
-    return binding ?? null;
+    return env as RuntimeEnvironment;
   } catch {
     return null;
   }
@@ -97,11 +101,14 @@ async function privateApiBinding(): Promise<PrivateApiBinding|null> {
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path:string[] }> }) {
   const { path } = await context.params;
-  const publicReadOnly = process.env.PUBLIC_READ_ONLY === "1";
+  const runtime = process.env.NODE_ENV === "development" ? null : await runtimeEnvironment();
+  const publicReadOnly = runtime
+    ? runtime.PUBLIC_READ_ONLY === "1"
+    : process.env.PUBLIC_READ_ONLY === "1";
   if (!isPublicApiAllowed(request.method, path, publicReadOnly)) {
     return publicAccessDenied("公开链接仅供查看，不能修改日历或读取私有设置");
   }
-  const vpcBinding = process.env.NODE_ENV === "development" ? null : await privateApiBinding();
+  const vpcBinding = runtime?.CALENDAR_API ?? null;
   const apiOrigin = vpcBinding ? VPC_API_ORIGIN : resolveApiOrigin();
   if (!apiOrigin) {
     return apiUnavailable("事件服务尚未连接，请配置 Cloudflare VPC 或 INTERNAL_API_URL");

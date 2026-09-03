@@ -8,6 +8,9 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "vars": {
+    "PUBLIC_READ_ONLY": "1"
+  },
   "vpc_services": [
     {
       "binding": "CALENDAR_API",
