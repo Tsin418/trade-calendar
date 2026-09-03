@@ -13,7 +13,9 @@ from trade_calendar.adapters import (
     BokMeetingAdapter,
     FedFomcAdapter,
     HkexCalendarAdapter,
+    HongKongStatisticsAdapter,
     HttpFetcher,
+    KoreaStatisticsCalendarAdapter,
     SourceAdapter,
     TaiwanCbcMeetingAdapter,
     TaiwanStatisticsAdapter,
@@ -22,6 +24,7 @@ from trade_calendar.adapters.corporate import (
     FinnhubEarningsAdapter,
     JpxEarningsScheduleAdapter,
     KrxKindEarningsCallAdapter,
+    LongbridgeEarningsAdapter,
     TwseEarningsCallAdapter,
 )
 from trade_calendar.core.config import Settings, get_settings
@@ -97,12 +100,15 @@ def adapter_registry(settings: Settings | None = None) -> dict[str, SourceAdapte
         "boj_mpm": BojMeetingAdapter(fetcher),
         "boj_release_schedule": BojReleaseScheduleAdapter(fetcher),
         "bok_mpb": BokMeetingAdapter(fetcher),
+        "korea_statistics_calendar": KoreaStatisticsCalendarAdapter(fetcher),
         "taiwan_cbc": TaiwanCbcMeetingAdapter(fetcher),
         "taiwan_dgbas_calendar": TaiwanStatisticsAdapter(fetcher),
+        "hk_censtatd_schedule": HongKongStatisticsAdapter(fetcher),
         "hkex_calendar": HkexCalendarAdapter(fetcher),
         "jpx_earnings_schedule": JpxEarningsScheduleAdapter(fetcher, companies),
         "krx_kind_earnings_calls": KrxKindEarningsCallAdapter(fetcher, companies),
         "twse_earnings_calls": TwseEarningsCallAdapter(fetcher, companies),
+        "longbridge_earnings": LongbridgeEarningsAdapter(companies),
     }
     if setting_is_configured(settings, "finnhub_api_key"):
         assert settings.finnhub_api_key is not None

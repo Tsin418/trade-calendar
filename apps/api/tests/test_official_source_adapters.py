@@ -15,6 +15,7 @@ from trade_calendar.adapters.hong_kong import (
     parse_hong_kong_statistics_page,
 )
 from trade_calendar.adapters.http import HttpFetcher
+from trade_calendar.adapters.korea import KoreaStatisticsCalendarAdapter
 from trade_calendar.adapters.taiwan import TaiwanCbcMeetingAdapter, TaiwanStatisticsAdapter
 from trade_calendar.adapters.types import RawPayload
 from trade_calendar.core.config import Settings
@@ -115,6 +116,32 @@ def test_bok_current_year_meeting_table() -> None:
     assert adapter.normalize(events[0]).title_zh == "韩国央行利率决议"
 
 
+def test_korea_release_plan_parses_full_official_schedule() -> None:
+    html = """
+    <h3>2026년 전체 보도계획</h3>
+    <table><tbody>
+      <tr class="tr-notice"><td>09.02.( 수 )</td><td>08:00</td>
+        <td>2026년 8월 소비자물가동향</td><td>물가동향과</td><td></td></tr>
+      <tr class="tr-notice"><td>09.09.( 수 )</td><td>08:00</td>
+        <td>2026년 8월 고용동향</td><td>고용통계과</td><td></td></tr>
+    </tbody></table>
+    """
+    adapter = KoreaStatisticsCalendarAdapter(
+        fetcher(),
+        today=lambda: date(2026, 9, 3),
+        now=lambda: datetime(2026, 9, 3, tzinfo=UTC),
+    )
+    events = adapter.parse(payload(adapter.source_key, html))
+    assert len(events) == 2
+    inflation = adapter.normalize(events[0])
+    employment = adapter.normalize(events[1])
+    assert inflation.starts_at == datetime(2026, 9, 1, 23, 0, tzinfo=UTC)
+    assert inflation.title_zh == "韩国消费者物价指数"
+    assert inflation.reference_period == "2026-08"
+    assert employment.title_zh == "韩国就业数据"
+    assert employment.status.value == "confirmed"
+
+
 def test_taiwan_central_bank_announcement() -> None:
     adapter = TaiwanCbcMeetingAdapter(fetcher())
     html = """
@@ -145,6 +172,23 @@ def test_taiwan_statistics_embedded_json() -> None:
     assert normalized.starts_at == datetime(2026, 1, 8, 8, 0, tzinfo=UTC)
     assert normalized.event_type == "inflation"
     assert normalized.reference_period == "(Dec 2025)"
+
+
+def test_taiwan_services_producer_prices_keep_distinct_title() -> None:
+    adapter = TaiwanStatisticsAdapter(fetcher())
+    html = """
+    <script>var VueData = {"year":2026,"list":[{
+      "ContentUrl":"https://eng.stat.gov.tw/item?MetaI_D=1984",
+      "DeptName":"DGBAS",
+      "name":"Services Producer Price Indices",
+      "category":"Compilation of Producer Price Index",
+      "timedatas":[[],[],[],[],[],[],[],[],[
+        {"date":"8","time":"16:00","notice":"(Jul 2026)"}
+      ],[],[],[]]
+    }]};var app = true;</script>
+    """
+    event = adapter.normalize(adapter.parse(payload(adapter.source_key, html))[0])
+    assert event.title_zh == "台湾服务业生产者物价指数"
 
 
 def test_hkex_embedded_calendar_filters_to_hong_kong_holidays() -> None:

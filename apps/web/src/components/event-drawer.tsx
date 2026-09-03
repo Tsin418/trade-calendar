@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, LockKeyhole, Save, ShieldCheck, UnlockKeyhole, X } from "lucide-react";
+import { Check, ExternalLink, LockKeyhole, Save, ShieldCheck, UnlockKeyhole, X } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 
-import { type ApiEvent, fetchLocks, saveEvent, setFieldLock } from "@/lib/api";
+import { type ApiEvent, type ApiEventSource, fetchEventSources, fetchLocks, saveEvent, setFieldLock } from "@/lib/api";
 
 import { usePreferences } from "./preferences-context";
 
@@ -15,6 +15,7 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
   const { readOnly } = usePreferences();
   const [precision, setPrecision] = useState<string>(event?.date_precision ?? "date");
   const [locks, setLocks] = useState<string[]>([]);
+  const [sources, setSources] = useState<ApiEventSource[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string|null>(null);
 
@@ -22,6 +23,11 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
     if (!event || readOnly) return;
     fetchLocks(event.id).then((items) => setLocks(items.map((item) => item.field_name))).catch(() => setLocks([]));
   }, [event, readOnly]);
+
+  useEffect(() => {
+    if (!event) return;
+    fetchEventSources(event.id).then(setSources).catch(() => setSources([]));
+  }, [event]);
 
   async function submit(formEvent:FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -83,6 +89,7 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
           <Field label="个人备注"><textarea name="notes" rows={4} defaultValue={event?.notes ?? ""} /></Field>
           <label className="reminder-toggle"><input type="checkbox" name="reminder_enabled" defaultChecked={event?.reminder_enabled ?? true} /><span><BellCheck />启用单事件提醒</span></label>
         </fieldset>
+        {event && <section className="event-sources"><h3>来源证据</h3>{sources.length ? <div>{sources.map((source) => <article key={source.source_id}><span>{source.is_primary ? "主来源" : "补充来源"}</span><div><strong>{source.source_name}</strong><small>{source.source_title ?? source.institution}{source.last_verified_at ? ` · 核验于 ${formatVerifiedAt(source.last_verified_at)}` : ""}</small></div>{/^https?:/.test(source.official_url) && <a href={source.official_url} target="_blank" rel="noreferrer" aria-label={`打开 ${source.source_name}`}><ExternalLink size={13} /></a>}</article>)}</div> : <p>暂无可展示的来源证据</p>}</section>}
         {event && !readOnly && <section className="field-locks"><h3>人工字段锁</h3><p>锁定后，自动来源不能覆盖该字段。</p><div>{lockableFields.map(([field,label]) => <button type="button" className={locks.includes(field) ? "locked" : ""} onClick={() => void toggleLock(field)} key={field}>{locks.includes(field) ? <LockKeyhole size={13} /> : <UnlockKeyhole size={13} />}{label}{locks.includes(field) && <Check size={12} />}</button>)}</div></section>}
         {error && <p className="drawer-error">{error}</p>}
         <footer className="drawer-footer"><button type="button" onClick={onClose}>{readOnly ? "关闭" : "取消"}</button>{!readOnly && <button className="primary" disabled={saving}><Save size={14} />{saving ? "保存中…" : "保存事件"}</button>}</footer>
@@ -94,3 +101,4 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
 function Field({ label, children }:{ label:string; children:ReactNode }) { return <label className="drawer-field"><span>{label}</span>{children}</label>; }
 function BellCheck() { return <span className="tiny-bell" aria-hidden="true">●</span>; }
 function toLocalInput(value:string) { const date = new Date(value); return new Date(date.getTime() + 8*3_600_000).toISOString().slice(0,16); }
+function formatVerifiedAt(value:string) { return new Intl.DateTimeFormat("zh-CN", { timeZone:"Asia/Shanghai", month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date(value)); }

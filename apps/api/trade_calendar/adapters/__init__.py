@@ -7,11 +7,13 @@ from trade_calendar.adapters.corporate import (
     FinnhubEarningsAdapter,
     JpxEarningsScheduleAdapter,
     KrxKindEarningsCallAdapter,
+    LongbridgeEarningsAdapter,
     TwseEarningsCallAdapter,
 )
 from trade_calendar.adapters.fed import FedFomcAdapter
 from trade_calendar.adapters.hong_kong import HkexCalendarAdapter, HongKongStatisticsAdapter
 from trade_calendar.adapters.http import HttpFetcher
+from trade_calendar.adapters.korea import KoreaStatisticsCalendarAdapter
 from trade_calendar.adapters.taiwan import TaiwanCbcMeetingAdapter, TaiwanStatisticsAdapter
 
 __all__ = [
@@ -26,7 +28,9 @@ __all__ = [
     "HongKongStatisticsAdapter",
     "HttpFetcher",
     "JpxEarningsScheduleAdapter",
+    "KoreaStatisticsCalendarAdapter",
     "KrxKindEarningsCallAdapter",
+    "LongbridgeEarningsAdapter",
     "SourceAdapter",
     "TaiwanCbcMeetingAdapter",
     "TaiwanStatisticsAdapter",

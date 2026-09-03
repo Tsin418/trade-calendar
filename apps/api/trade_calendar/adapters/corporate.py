@@ -1,9 +1,11 @@
+import asyncio
 import base64
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
+from typing import Any
 from urllib.parse import urlencode, urljoin
 from zoneinfo import ZoneInfo
 
@@ -12,7 +14,13 @@ from pydantic import SecretStr
 from selectolax.parser import HTMLParser
 
 from trade_calendar.adapters.base import SourceAdapter
-from trade_calendar.adapters.errors import HttpStatusError, ParseError, StructureChangedError
+from trade_calendar.adapters.errors import (
+    AuthenticationError,
+    HttpStatusError,
+    NetworkError,
+    ParseError,
+    StructureChangedError,
+)
 from trade_calendar.adapters.http import HttpFetcher
 from trade_calendar.adapters.types import NormalizedEvent, RawPayload, SourceEvent
 from trade_calendar.models.domain import DatePrecision, EventStatus, Importance
@@ -22,9 +30,206 @@ SEOUL = ZoneInfo("Asia/Seoul")
 TAIPEI = ZoneInfo("Asia/Taipei")
 TOKYO = ZoneInfo("Asia/Tokyo")
 FINNHUB_URL = "https://finnhub.io/api/v1/calendar/earnings"
+LONGBRIDGE_EARNINGS_URL = (
+    "https://open.longbridge.com/docs/market/calendar/earnings-calendar"
+)
 JPX_URL = "https://www.jpx.co.jp/listing/event-schedules/financial-announcement/"
 KIND_URL = "https://kind.krx.co.kr/corpgeneral/irschedule.do"
 TWSE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap04_L"
+LongbridgeDocument = dict[str, Any]
+LongbridgeRunner = Callable[[list[str], date, date], Awaitable[LongbridgeDocument]]
+
+
+class LongbridgeEarningsAdapter(SourceAdapter):
+    source_key = "longbridge_earnings"
+    version = "1.0.0"
+    allow_empty = True
+    url = LONGBRIDGE_EARNINGS_URL
+
+    def __init__(
+        self,
+        companies: list[WatchedCompany],
+        today: Callable[[], date] | None = None,
+        command_runner: LongbridgeRunner | None = None,
+        cli_path: str = "longbridge",
+    ) -> None:
+        self.companies = [company for company in companies if company.longbridge_symbol]
+        self.today = today or (lambda: datetime.now(UTC).date())
+        self.command_runner = command_runner or self._run_calendar_command
+        self.cli_path = cli_path
+
+    async def fetch(self) -> RawPayload:
+        start = self.today() - timedelta(days=31)
+        end = self.today() + timedelta(days=180)
+        symbols = list(dict.fromkeys(
+            company.longbridge_symbol
+            for company in self.companies
+            if company.longbridge_symbol
+        ))
+        groups: list[dict[str, object]] = []
+        queries: list[dict[str, object]] = []
+        for offset in range(0, len(symbols), 10):
+            batch = symbols[offset:offset + 10]
+            document = await self.command_runner(batch, start, end)
+            rows = document.get("list")
+            if not isinstance(rows, list):
+                raise StructureChangedError("Longbridge earnings calendar list is missing")
+            valid_groups = [row for row in rows if isinstance(row, dict)]
+            groups.extend(valid_groups)
+            queries.append({"symbols": batch, "groups": len(valid_groups)})
+        content = json.dumps({
+            "provider": "Longbridge",
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "queries": queries,
+            "list": groups,
+        }, ensure_ascii=False).encode()
+        return RawPayload(
+            source_key=self.source_key,
+            url=self.url,
+            content=content,
+            content_type="application/json",
+        )
+
+    async def _run_calendar_command(
+        self,
+        symbols: list[str],
+        start: date,
+        end: date,
+    ) -> LongbridgeDocument:
+        command = [self.cli_path, "finance-calendar", "report"]
+        for symbol in symbols:
+            command.extend(("--symbol", symbol))
+        command.extend((
+            "--start", start.isoformat(),
+            "--end", end.isoformat(),
+            "--count", "200",
+            "--format", "json",
+            "--lang", "en",
+        ))
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except OSError as exc:
+            raise NetworkError("Longbridge CLI is unavailable") from exc
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+        except TimeoutError as exc:
+            process.kill()
+            await process.wait()
+            raise NetworkError("Longbridge earnings command timed out") from exc
+        if process.returncode != 0:
+            error_text = stderr.decode(errors="replace").casefold()
+            if "not authenticated" in error_text or "auth token" in error_text:
+                raise AuthenticationError("Longbridge CLI authentication is unavailable")
+            raise NetworkError(
+                f"Longbridge earnings command failed with exit code {process.returncode}"
+            )
+        try:
+            document = json.loads(stdout)
+        except json.JSONDecodeError as exc:
+            raise ParseError("invalid Longbridge earnings calendar JSON") from exc
+        if not isinstance(document, dict):
+            raise StructureChangedError("Longbridge earnings response is not an object")
+        return document
+
+    def parse(self, payload: RawPayload) -> list[SourceEvent]:
+        try:
+            document = json.loads(payload.content)
+        except json.JSONDecodeError as exc:
+            raise ParseError("invalid aggregated Longbridge earnings JSON") from exc
+        groups = document.get("list") if isinstance(document, dict) else None
+        if not isinstance(groups, list):
+            raise StructureChangedError("aggregated Longbridge earnings list is missing")
+        companies = {
+            company.longbridge_symbol.upper(): company
+            for company in self.companies
+            if company.longbridge_symbol
+        }
+        events: dict[str, SourceEvent] = {}
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get("infos"), list):
+                continue
+            for row in group["infos"]:
+                if not isinstance(row, dict):
+                    continue
+                symbol = str(row.get("symbol") or "").strip().upper()
+                company = companies.get(symbol)
+                if company is None:
+                    continue
+                raw_ext = row.get("ext")
+                ext: dict[str, Any] = raw_ext if isinstance(raw_ext, dict) else {}
+                raw_financial = ext.get("financial_report")
+                financial: dict[str, Any] = (
+                    raw_financial if isinstance(raw_financial, dict) else {}
+                )
+                event_date = _as_date(ext.get("local_date")) or _date_from_text(
+                    row.get("date")
+                )
+                if event_date is None:
+                    continue
+                try:
+                    fiscal_year = int(financial.get("fiscal_year") or event_date.year)
+                    quarter = int(financial.get("period") or 0)
+                except (TypeError, ValueError):
+                    fiscal_year = event_date.year
+                    quarter = 0
+                reference = _longbridge_reference_period(
+                    financial,
+                    str(row.get("content") or ""),
+                    fiscal_year,
+                    quarter,
+                )
+                source_id = f"longbridge:{company.key}:{reference.replace(' ', '-')}"
+                market_time = str(
+                    financial.get("market_time") or row.get("date_type") or ""
+                ).strip().casefold()
+                time_label = {
+                    "pre": "before market open",
+                    "before": "before market open",
+                    "post": "after market close",
+                    "after": "after market close",
+                }.get(market_time)
+                events[source_id] = SourceEvent(
+                    source_event_id=source_id,
+                    title=f"{company.name_en} Earnings Release",
+                    local_date=event_date,
+                    original_timezone=_market_timezone(company.market),
+                    original_time_text=(
+                        f"{event_date.isoformat()} {time_label}"
+                        if time_label
+                        else event_date.isoformat()
+                    ),
+                    reference_period=reference,
+                    status_text="completed" if event_date < self.today() else "expected",
+                    url=payload.url,
+                    raw={
+                        **row,
+                        "company_key": company.key,
+                        "canonical_ticker": company.ticker,
+                        "query_symbol": symbol,
+                    },
+                )
+        return list(events.values())
+
+    def normalize(self, event: SourceEvent) -> NormalizedEvent:
+        company = _company_for_event(event, self.companies)
+        if event.local_date is None:
+            raise StructureChangedError("Longbridge earnings event is missing a date")
+        return _normalized_corporate_event(
+            event,
+            company,
+            event_type="earnings_release",
+            status=(
+                EventStatus.COMPLETED
+                if event.local_date < self.today()
+                else EventStatus.EXPECTED
+            ),
+            source_url=event.url or self.url,
+        )
 
 
 class FinnhubEarningsAdapter(SourceAdapter):
@@ -614,6 +819,19 @@ def _reference_period(year: int, quarter: int) -> str:
     return f"FY{year} Q{quarter}" if 1 <= quarter <= 4 else f"FY{year}"
 
 
+def _longbridge_reference_period(
+    financial: dict[str, Any],
+    content: str,
+    fiscal_year: int,
+    quarter: int,
+) -> str:
+    period_type = str(financial.get("period_type") or "").casefold()
+    lowered = content.casefold()
+    if "semi-annual" in lowered or period_type in {"saf", "half", "half_year"}:
+        return f"FY{fiscal_year} H1"
+    return _reference_period(fiscal_year, quarter)
+
+
 def _market_timezone(market: str) -> str:
     return {
         "US": "America/New_York",
@@ -639,12 +857,19 @@ def _as_date(value: object) -> date | None:
     if isinstance(value, date):
         return value
     text = str(value or "").strip()
-    for pattern in ("%Y-%m-%d", "%Y/%m/%d"):
+    for pattern in ("%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"):
         try:
             return datetime.strptime(text, pattern).date()
         except ValueError:
             continue
     return None
+
+
+def _date_from_text(value: object) -> date | None:
+    match = re.search(r"20\d{2}[./-]\d{1,2}[./-]\d{1,2}", str(value or ""))
+    if match is None:
+        return None
+    return _as_date(match.group().replace(".", "-"))
 
 
 def _jpx_period(value: object) -> str | None:

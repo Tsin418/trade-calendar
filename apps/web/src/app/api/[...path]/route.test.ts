@@ -51,6 +51,7 @@ describe("API proxy origin", () => {
   it("allows only public event and source reads in public mode", () => {
     expect(isPublicApiAllowed("GET", ["v1", "events"], true)).toBe(true);
     expect(isPublicApiAllowed("GET", ["v1", "events", "event-id"], true)).toBe(true);
+    expect(isPublicApiAllowed("GET", ["v1", "events", "event-id", "sources"], true)).toBe(true);
     expect(isPublicApiAllowed("GET", ["v1", "sources"], true)).toBe(true);
     expect(isPublicApiAllowed("POST", ["v1", "sync"], true)).toBe(false);
     expect(isPublicApiAllowed("GET", ["v1", "settings"], true)).toBe(false);

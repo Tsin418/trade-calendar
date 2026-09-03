@@ -13,6 +13,20 @@ const healthLabels: Record<SourceHealth, string> = {
   disabled:"已停用",
 };
 
+const roleLabels: Record<ApiSource["role"], string> = {
+  primary:"主来源",
+  secondary:"备用来源",
+  discovery:"发现来源",
+  internal:"内部来源",
+};
+
+const categoryLabels: Record<string,string> = {
+  monetary_policy:"货币政策",
+  macro_release:"宏观数据",
+  market_calendar:"市场日历",
+  corporate:"公司事件",
+};
+
 function useSourceHealth() {
   const [sources, setSources] = useState<ApiSource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +65,8 @@ function sourceStats(sources: ApiSource[]) {
 
 export function SourceHealthPanel() {
   const { sources, loading, error, load } = useSourceHealth();
-  const stats = useMemo(() => sourceStats(sources), [sources]);
+  const externalSources = useMemo(() => sources.filter((source) => !source.is_internal), [sources]);
+  const stats = useMemo(() => sourceStats(externalSources), [externalSources]);
   const value = (number: number) => loading || error ? "—" : String(number);
 
   return <>
@@ -60,23 +75,33 @@ export function SourceHealthPanel() {
       <Metric icon={CheckCircle2} label="健康" value={value(stats.healthy)} tone="green" />
       <Metric icon={Clock3} label="需关注" value={value(stats.attention)} tone="amber" />
       <Metric icon={AlertTriangle} label="连续失败" value={value(stats.failures)} tone="red" />
-      <Metric icon={DatabaseZap} label="最近事件数" value={value(stats.events)} tone="blue" />
+      <Metric icon={DatabaseZap} label="来源结果数" value={value(stats.events)} tone="blue" />
     </section>
     <section className="panel source-table" aria-live="polite">
       <div className="table-head"><span>来源</span><span>状态</span><span>最近结果</span><span>事件数</span><span>连续失败</span><span /></div>
       {loading && <div className="source-loading"><RefreshCw className="spin" size={15} />正在读取真实来源状态…</div>}
-      {!loading && !error && sources.map((source) => {
+      {!loading && !error && externalSources.map((source) => {
         const health = source.enabled ? source.health : "disabled";
-        return <article key={source.id}>
-          <div><b className="country-code">{source.country_code}</b><span><strong>{source.name}</strong><small>{source.institution} · {source.source_type.toUpperCase()}</small></span></div>
-          <span className={`source-status ${health}`}>{healthLabels[health]}</span>
-          <span>{latestResult(source)}</span>
-          <span>{source.last_event_count ?? "—"}</span>
-          <span>{source.consecutive_failures}</span>
-          <a className="source-link" href={source.official_url} target="_blank" rel="noreferrer" aria-label={`打开 ${source.name} 官方来源`}><ChevronRight size={17} /></a>
+        const categories = (source.categories ?? []).map((category) => categoryLabels[category] ?? category).join("、") || "未分类";
+        const expected = source.expected_items?.min === undefined && source.expected_items?.max === undefined ? "未设定" : `${source.expected_items?.min ?? 0}–${source.expected_items?.max ?? "∞"} 条`;
+        return <article className="source-entry" key={source.id}>
+          <div className="source-row">
+            <div><b className="country-code">{source.country_code}</b><span><strong>{source.name}</strong><small>{source.institution} · {source.source_type.toUpperCase()} · {roleLabels[source.role] ?? source.role}</small></span></div>
+            <span className={`source-status ${health}`}>{healthLabels[health]}</span>
+            <span>{latestResult(source)}</span>
+            <span>{source.last_event_count ?? "—"}</span>
+            <span>{source.consecutive_failures}</span>
+            <a className="source-link" href={source.official_url} target="_blank" rel="noreferrer" aria-label={`打开 ${source.name} 官方来源`}><ChevronRight size={17} /></a>
+          </div>
+          <div className="source-details">
+            <dl><div><dt>覆盖类别</dt><dd>{categories}</dd></div><div><dt>优先级</dt><dd>{source.priority}</dd></div><div><dt>抓取计划</dt><dd>{source.schedule}</dd></div><div><dt>预期结果</dt><dd>{expected}</dd></div><div><dt>过期阈值</dt><dd>{source.stale_after_hours} 小时</dd></div><div><dt>Adapter</dt><dd>{source.adapter_available ? "已接入" : "未接入"}</dd></div></dl>
+            <p><b>使用条件</b>{source.terms || "未记录"}</p>
+            <p><b>兜底方案</b>{source.fallback || "无"}</p>
+            {source.last_run && <p><b>最近运行</b>{runSummary(source)}</p>}
+          </div>
         </article>;
       })}
-      {!loading && !error && sources.length === 0 && <div className="source-loading">尚未注册数据源</div>}
+      {!loading && !error && externalSources.length === 0 && <div className="source-loading">尚未注册外部数据源</div>}
     </section>
   </>;
 }
@@ -110,4 +135,11 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat("zh-CN", {
     timeZone:"Asia/Shanghai", month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false,
   }).format(new Date(value));
+}
+
+function runSummary(source:ApiSource):string {
+  const run = source.last_run;
+  if (!run) return "尚未运行";
+  if (run.status === "failed") return `${run.error_type ?? "失败"}：${run.error_message ?? "没有错误详情"}`;
+  return `${run.status === "succeeded" ? "成功" : run.status} · 解析 ${run.parsed_count} · 新增 ${run.created_count} · 更新 ${run.updated_count}`;
 }

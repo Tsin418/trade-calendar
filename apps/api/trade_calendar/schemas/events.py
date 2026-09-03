@@ -154,6 +154,23 @@ class EventList(BaseModel):
     offset: int
 
 
+class EventSourceRead(BaseModel):
+    source_id: UUID
+    source_key: str
+    source_name: str
+    institution: str
+    official_url: str
+    source_event_id: str | None
+    source_title: str | None
+    is_primary: bool
+    last_verified_at: datetime | None
+
+    @field_validator("last_verified_at", mode="before")
+    @classmethod
+    def restore_verified_at_utc(cls, value: datetime | None) -> datetime | None:
+        return value.replace(tzinfo=UTC) if value is not None and value.tzinfo is None else value
+
+
 class VersionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID

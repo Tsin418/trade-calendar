@@ -20,6 +20,13 @@ async def test_create_event_is_idempotent_and_versioned(
     assert first.json()["starts_at"] == "2026-09-16T18:00:00Z"
     assert first.json()["country_code"] == "US"
 
+    source_response = await client.get(f"/api/v1/events/{first.json()['id']}/sources")
+    assert source_response.status_code == 200
+    evidence = source_response.json()
+    assert len(evidence) == 1
+    assert evidence[0]["source_key"] == "manual"
+    assert evidence[0]["is_primary"] is True
+
     versions = await client.get(f"/api/v1/events/{first.json()['id']}/versions")
     assert versions.status_code == 200
     assert [version["version"] for version in versions.json()] == [1]

@@ -14,6 +14,7 @@ from trade_calendar.adapters.corporate import (
     FinnhubEarningsAdapter,
     JpxEarningsScheduleAdapter,
     KrxKindEarningsCallAdapter,
+    LongbridgeEarningsAdapter,
     TwseEarningsCallAdapter,
 )
 from trade_calendar.adapters.http import HttpFetcher
@@ -41,6 +42,7 @@ def company(
     name_zh: str,
     name_en: str,
     finnhub_symbol: str | None = None,
+    longbridge_symbol: str | None = None,
     source_names: tuple[str, ...] = (),
 ) -> WatchedCompany:
     return WatchedCompany(
@@ -50,7 +52,7 @@ def company(
         name_zh=name_zh,
         name_en=name_en,
         finnhub_symbol=finnhub_symbol,
-        longbridge_symbol=None,
+        longbridge_symbol=longbridge_symbol,
         source_names=(name_zh, name_en, *source_names),
         ir_url=None,
     )
@@ -110,6 +112,44 @@ def test_finnhub_earnings_are_expected_date_events() -> None:
     normalized = adapter.normalize(events[0])
     assert normalized.status == EventStatus.EXPECTED
     assert normalized.date_precision == DatePrecision.DATE
+    assert normalized.local_date == date(2026, 10, 28)
+    assert normalized.reference_period == "FY2026 Q4"
+    assert normalized.tickers == ["AAPL"]
+    assert normalized.original_time_text == "2026-10-28 after market close"
+
+
+def test_longbridge_earnings_are_filtered_and_normalized_for_watchlist() -> None:
+    apple = company(
+        key="apple",
+        ticker="AAPL",
+        market="US",
+        name_zh="苹果",
+        name_en="Apple",
+        longbridge_symbol="AAPL.US",
+    )
+    document = {"list": [{"date": "2026-10-28", "infos": [{
+        "id": "12345",
+        "symbol": "AAPL.US",
+        "content": "FY2026 Q4 Earning Release",
+        "counter_name": "Apple Inc.",
+        "date": "2026.10.28 (EST)",
+        "date_type": "Post",
+        "ext": {
+            "local_date": "2026-10-28",
+            "financial_report": {
+                "fiscal_year": "2026",
+                "period": "4",
+                "market_time": "after",
+            },
+        },
+    }]}]}
+    adapter = LongbridgeEarningsAdapter([apple], today=lambda: date(2026, 9, 3))
+    events = adapter.parse(payload(
+        adapter.source_key,
+        json.dumps(document).encode(),
+        adapter.url,
+    ))
+    normalized = adapter.normalize(events[0])
     assert normalized.local_date == date(2026, 10, 28)
     assert normalized.reference_period == "FY2026 Q4"
     assert normalized.tickers == ["AAPL"]
@@ -313,6 +353,15 @@ class FlexibleCorporateAdapter(FixtureCorporateAdapter):
         return normalized.model_copy(update={"status": self.status})
 
 
+class ProviderLabeledCorporateAdapter(FlexibleCorporateAdapter):
+    def normalize(self, event: SourceEvent) -> NormalizedEvent:
+        normalized = super().normalize(event)
+        return normalized.model_copy(update={
+            "title_original": "Apple Inc. Fiscal Fourth Quarter Results",
+            "institution": "Apple Inc.",
+        })
+
+
 async def test_higher_priority_confirmation_wins_and_stays_primary(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
@@ -321,7 +370,7 @@ async def test_higher_priority_confirmation_wins_and_stays_primary(
         date(2026, 10, 28),
         EventStatus.EXPECTED,
     )
-    official = FlexibleCorporateAdapter(
+    official = ProviderLabeledCorporateAdapter(
         "earnings_official",
         date(2026, 10, 29),
         EventStatus.CONFIRMED,

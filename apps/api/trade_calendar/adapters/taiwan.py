@@ -236,6 +236,8 @@ def translate_taiwan_title(title: str) -> str:
     lowered = title.casefold()
     if "consumer price" in lowered:
         return "台湾消费者物价指数"
+    if "services producer price" in lowered:
+        return "台湾服务业生产者物价指数"
     if "producer price" in lowered:
         return "台湾生产者物价指数"
     if "national accounts" in lowered or "gross domestic product" in lowered:

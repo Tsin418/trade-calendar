@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from trade_calendar.core.config import get_settings
 from trade_calendar.core.database import get_session
 from trade_calendar.core.errors import ApiError
 from trade_calendar.models.domain import FetchRun, Source
 from trade_calendar.scheduling import refresh_stale_sources
-from trade_calendar.schemas.sources import FetchRunRead, SourceRead
-from trade_calendar.source_registry import adapter_registry, seed_sources
+from trade_calendar.schemas.sources import FetchRunRead, SourceRead, SourceRunSummary
+from trade_calendar.source_registry import adapter_registry, load_source_config, seed_sources
 from trade_calendar.sync import make_run
 
 router = APIRouter(tags=["sources"])
@@ -21,10 +22,31 @@ async def list_sources(session: AsyncSession = Depends(get_session)) -> list[Sou
     if await session.scalar(select(Source.id).limit(1)) is None:
         await seed_sources(session)
     await refresh_stale_sources(session)
-    sources = await session.scalars(
+    sources = list(await session.scalars(
         select(Source).order_by(Source.priority.asc(), Source.country_code.asc(), Source.name.asc())
-    )
-    return [SourceRead.model_validate(source) for source in sources]
+    ))
+    registry = adapter_registry()
+    config = {item["id"]: item for item in load_source_config(get_settings().config_dir)}
+    result: list[SourceRead] = []
+    for source in sources:
+        item = config.get(source.key, {})
+        last_run = await session.scalar(
+            select(FetchRun)
+            .where(FetchRun.source_id == source.id)
+            .order_by(FetchRun.created_at.desc())
+            .limit(1)
+        )
+        result.append(SourceRead.model_validate(source).model_copy(update={
+            "categories": list(item.get("categories", [])),
+            "role": str(item.get("role", "internal" if source.key == "manual" else "primary")),
+            "expected_items": dict(item.get("expected_items", {})),
+            "terms": str(item.get("terms", "Internal source" if source.key == "manual" else "")),
+            "fallback": str(item.get("fallback", "")),
+            "adapter_available": source.key in registry,
+            "is_internal": source.key == "manual",
+            "last_run": SourceRunSummary.model_validate(last_run) if last_run else None,
+        }))
+    return result
 
 
 @router.get("/sources/{source_id}/runs", response_model=list[FetchRunRead])

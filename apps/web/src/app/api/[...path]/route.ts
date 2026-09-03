@@ -58,7 +58,7 @@ export function isPublicApiAllowed(
   if (!readOnly) return true;
   if (method !== "GET" && method !== "HEAD") return false;
   const route = path.join("/");
-  return route === "v1/sources" || /^v1\/events(?:\/[^/]+)?$/.test(route);
+  return route === "v1/sources" || /^v1\/events(?:\/[^/]+(?:\/sources)?)?$/.test(route);
 }
 
 export function sanitizePublicEvents(payload:unknown):unknown {

@@ -8,12 +8,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from trade_calendar.core.database import get_session
 from trade_calendar.core.errors import ApiError
 from trade_calendar.models.base import utc_now
-from trade_calendar.models.domain import AuditLog, Event, EventChange, EventFieldLock, EventVersion
+from trade_calendar.models.domain import (
+    AuditLog,
+    Event,
+    EventChange,
+    EventFieldLock,
+    EventSource,
+    EventVersion,
+    Source,
+    SourceObservation,
+)
 from trade_calendar.schemas.events import (
     ChangeRead,
     EventCreate,
     EventList,
     EventRead,
+    EventSourceRead,
     EventUpdate,
     FieldLockCreate,
     FieldLockRead,
@@ -86,6 +96,35 @@ async def post_event(
 @router.get("/{event_id}", response_model=EventRead)
 async def get_event(event_id: UUID, session: AsyncSession = Depends(get_session)) -> EventRead:
     return EventRead.model_validate(await get_event_or_404(session, event_id))
+
+
+@router.get("/{event_id}/sources", response_model=list[EventSourceRead])
+async def list_event_sources(
+    event_id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> list[EventSourceRead]:
+    await get_event_or_404(session, event_id)
+    rows = await session.execute(
+        select(EventSource, Source, SourceObservation)
+        .join(Source, Source.id == EventSource.source_id)
+        .outerjoin(SourceObservation, SourceObservation.id == EventSource.observation_id)
+        .where(EventSource.event_id == event_id)
+        .order_by(EventSource.is_primary.desc(), Source.priority.asc(), Source.name.asc())
+    )
+    return [
+        EventSourceRead(
+            source_id=source.id,
+            source_key=source.key,
+            source_name=source.name,
+            institution=source.institution,
+            official_url=source.official_url,
+            source_event_id=observation.source_event_id if observation else None,
+            source_title=observation.title if observation else None,
+            is_primary=link.is_primary,
+            last_verified_at=link.last_verified_at,
+        )
+        for link, source, observation in rows
+    ]
 
 
 @router.patch("/{event_id}", response_model=EventRead)

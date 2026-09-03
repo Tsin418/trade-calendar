@@ -92,20 +92,19 @@ sources:
     terms: Public official schedule; conservative request rate.
     fallback: Bank of Korea monetary policy decision press releases
   - id: korea_statistics_calendar
-    name: Statistics Korea Release Calendar
-    institution: Statistics Korea
+    name: Korea Ministry of Data and Statistics Release Plan
+    institution: Ministry of Data and Statistics, Republic of Korea
     country: KR
-    official_url: https://kostat.go.kr/
+    official_url: https://mods.go.kr/newsPln.es?mid=a10305000000&oa_mm=ALL
     type: html
     categories: [macro_release]
     priority: 20
     role: primary
     fetch_schedule: "10 */12 * * *"
-    expected_items: {min: 5, max: 250}
+    expected_items: {min: 5, max: 400}
     stale_after_hours: 72
-    terms: Parser endpoint and access terms must be reconfirmed before enabling.
-    fallback: Manual official press-release verification
-    enabled: false
+    terms: Official Korean government release plan; retain source attribution and the original Korean title.
+    fallback: Ministry press releases and the monthly downloadable release plan
   - id: taiwan_cbc
     name: Taiwan Central Bank Press Releases
     institution: Central Bank of the Republic of China (Taiwan)
@@ -138,16 +137,15 @@ sources:
     name: Hong Kong Regular Statistics Schedule
     institution: Census and Statistics Department, HKSAR
     country: HK
-    official_url: https://www.censtatd.gov.hk/en/page_898.html
+    official_url: https://www.censtatd.gov.hk/en/press_release.html?selType=4
     type: pdf
-    enabled: false
     categories: [macro_release]
     priority: 10
     role: primary
     fetch_schedule: "35 */12 * * *"
     expected_items: {min: 20, max: 200}
     stale_after_hours: 168
-    terms: Public official publication schedule; annual PDF URL changes.
+    terms: C&SD statistical information permits reuse with source and rights-owner attribution; clearly identify modifications.
     fallback: C&SD press release index
   - id: hkex_calendar
     name: HKEX Calendar
@@ -232,6 +230,5 @@ sources:
     fetch_schedule: "45 */6 * * *"
     expected_items: {min: 0, max: 120}
     stale_after_hours: 12
-    enabled: false
     terms: Free OpenAPI for an authorized Longbridge integrated account; OAuth required.
     fallback: Finnhub and exchange disclosure sources

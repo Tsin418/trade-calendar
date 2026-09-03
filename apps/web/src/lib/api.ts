@@ -72,10 +72,42 @@ export type ApiSource = {
   enabled: boolean;
   health: SourceHealth;
   schedule: string;
+  stale_after_hours: number;
   consecutive_failures: number;
   last_success_at: string | null;
   last_failure_at: string | null;
   last_event_count: number | null;
+  categories: string[];
+  role: "primary" | "secondary" | "discovery" | "internal";
+  expected_items: { min?:number; max?:number };
+  terms: string;
+  fallback: string;
+  adapter_available: boolean;
+  is_internal: boolean;
+  last_run: {
+    id:string;
+    status:"pending"|"running"|"succeeded"|"failed"|"partial";
+    trigger:string;
+    started_at:string|null;
+    finished_at:string|null;
+    parsed_count:number;
+    created_count:number;
+    updated_count:number;
+    error_type:string|null;
+    error_message:string|null;
+  } | null;
+};
+
+export type ApiEventSource = {
+  source_id:string;
+  source_key:string;
+  source_name:string;
+  institution:string;
+  official_url:string;
+  source_event_id:string|null;
+  source_title:string|null;
+  is_primary:boolean;
+  last_verified_at:string|null;
 };
 
 export async function fetchPublicMode(): Promise<{ readOnly:boolean }> {
@@ -105,6 +137,12 @@ export async function fetchEvents(query = ""): Promise<EventListResponse> {
 export async function fetchEvent(eventId:string): Promise<ApiEvent> {
   const response = await fetch(`/api/v1/events/${eventId}`, { cache:"no-store" });
   if (!response.ok) throw new Error(await apiFailureMessage(response, `事件 API 返回 ${response.status}`));
+  return response.json();
+}
+
+export async function fetchEventSources(eventId:string): Promise<ApiEventSource[]> {
+  const response = await fetch(`/api/v1/events/${eventId}/sources`, { cache:"no-store" });
+  if (!response.ok) throw new Error(await apiFailureMessage(response, `事件来源 API 返回 ${response.status}`));
   return response.json();
 }
 
