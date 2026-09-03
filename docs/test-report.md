@@ -43,3 +43,14 @@
 - 飞书真实 Webhook 发送与重试；
 - Google/Apple/Outlook ICS 兼容性检查；
 - 生产登录、安全扫描、备份恢复和 30 天稳定性观察。
+
+## 2026-09-03 公司财报来源增量
+
+- Python Ruff：通过；Mypy：45 个源码文件无错误；Pytest：52 项通过。
+- 前端 ESLint、TypeScript、Vitest（15 项）、Playwright 桌面/移动端（10 项）及
+  Next.js 生产构建通过。
+- Watchlist：US 10、JP/KR/CN/HK/TW 各 8，共 50 家。
+- Finnhub：逐公司真实同步解析 55 条并成功创建 52 条；未来至 2027-01-01 共 37 条。
+- JPX：官方 XLSX 真实同步解析 7 条 Watchlist 财报记录。
+- KRX KIND / TWSE：当前窗口无目标公司季度说明会，按允许空窗口成功记录健康运行。
+- 来源优先级：官方确认来源可接管第三方预计事件；后续低优先级重跑不会覆盖官方日期和状态。

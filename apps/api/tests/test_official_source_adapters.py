@@ -17,8 +17,13 @@ from trade_calendar.adapters.hong_kong import (
 from trade_calendar.adapters.http import HttpFetcher
 from trade_calendar.adapters.taiwan import TaiwanCbcMeetingAdapter, TaiwanStatisticsAdapter
 from trade_calendar.adapters.types import RawPayload
+from trade_calendar.core.config import Settings
 from trade_calendar.models.domain import DatePrecision
-from trade_calendar.source_registry import adapter_registry, load_source_config
+from trade_calendar.source_registry import (
+    adapter_registry,
+    load_source_config,
+    setting_is_configured,
+)
 
 
 def payload(source_key: str, content: str, content_type: str = "text/html") -> RawPayload:
@@ -36,10 +41,16 @@ def fetcher() -> HttpFetcher:
 
 def test_registry_covers_every_enabled_configured_source() -> None:
     config_dir = Path(__file__).resolve().parents[3] / "config"
+    settings = Settings(_env_file=None, config_dir=config_dir)
     enabled = {
-        item["id"] for item in load_source_config(config_dir) if item.get("enabled", True)
+        item["id"]
+        for item in load_source_config(config_dir)
+        if item.get("enabled", True)
+        and (
+            setting_is_configured(settings, item.get("requires_setting"))
+        )
     }
-    assert enabled == set(adapter_registry())
+    assert enabled == set(adapter_registry(settings))
 
 
 def test_bea_machine_readable_schedule() -> None:

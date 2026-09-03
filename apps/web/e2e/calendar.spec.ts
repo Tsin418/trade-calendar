@@ -28,7 +28,7 @@ async function seedEvent(page:Page, suffix:string, overrides:Record<string, unkn
 }
 
 test("dashboard uses live API data and primary navigation", async ({ page }, testInfo) => {
-  const suffix = `dashboard-${testInfo.project.name}`;
+  const suffix = `dashboard-${testInfo.project.name}-${Date.now()}`;
   await seedEvent(page, suffix);
   await page.goto("/");
   await expect(page.getByRole("heading", { name:"市场总览" })).toBeVisible();
@@ -39,7 +39,7 @@ test("dashboard uses live API data and primary navigation", async ({ page }, tes
 });
 
 test("search and filters update the URL and the calendar result", async ({ page }, testInfo) => {
-  const suffix = `searchable-${testInfo.project.name}`;
+  const suffix = `searchable-${testInfo.project.name}-${Date.now()}`;
   await seedEvent(page, suffix);
   await page.goto("/week");
   await page.getByRole("button", { name:/搜索事件/ }).click();
@@ -82,7 +82,7 @@ test("settings save round-trips through the API and applies the timezone", async
 });
 
 test("sync and changes expose observable results", async ({ page }, testInfo) => {
-  const suffix = `changes-${testInfo.project.name}`;
+  const suffix = `changes-${testInfo.project.name}-${Date.now()}`;
   await seedEvent(page, suffix);
   await page.goto("/changes");
   await expect(page.getByText(`E2E 验收事件 ${suffix}`)).toBeVisible({ timeout:15_000 });

@@ -162,4 +162,75 @@ sources:
     stale_after_hours: 168
     terms: Public official calendar; confirm reuse terms before production cache/export.
     fallback: Annual HKEX securities market holiday circular
-
+  - id: finnhub_earnings
+    name: Finnhub Watchlist Earnings Calendar
+    institution: Finnhub
+    country: GLOBAL
+    official_url: https://finnhub.io/docs/api/earnings-calendar
+    type: api
+    categories: [corporate]
+    priority: 60
+    role: discovery
+    fetch_schedule: "5 */6 * * *"
+    expected_items: {min: 10, max: 120}
+    stale_after_hours: 12
+    requires_setting: finnhub_api_key
+    terms: Private single-user use; store attribution and never expose the API token.
+    fallback: Longbridge, exchange disclosures, and issuer IR calendars
+  - id: jpx_earnings_schedule
+    name: JPX Scheduled Dates for Earnings Announcements
+    institution: Japan Exchange Group
+    country: JP
+    official_url: https://www.jpx.co.jp/listing/event-schedules/financial-announcement/
+    type: api
+    categories: [corporate]
+    priority: 10
+    role: primary
+    fetch_schedule: "15 */12 * * *"
+    expected_items: {min: 0, max: 40}
+    stale_after_hours: 36
+    terms: Public JPX workbooks for private use; retain source attribution.
+    fallback: Issuer investor-relations calendars and Finnhub ADR symbols
+  - id: krx_kind_earnings_calls
+    name: KRX KIND Earnings Call Schedule
+    institution: Korea Exchange
+    country: KR
+    official_url: https://kind.krx.co.kr/corpgeneral/irschedule.do?gubun=iRSchedule&method=searchIRScheduleMain
+    type: html
+    categories: [corporate]
+    priority: 10
+    role: primary
+    fetch_schedule: "25 */6 * * *"
+    expected_items: {min: 0, max: 40}
+    stale_after_hours: 12
+    terms: Public KRX disclosure schedule; conservative polling and source attribution.
+    fallback: Issuer IR calendars and OpenDART filings
+  - id: twse_earnings_calls
+    name: TWSE Watchlist Earnings Call Announcements
+    institution: Taiwan Stock Exchange
+    country: TW
+    official_url: https://openapi.twse.com.tw/v1/opendata/t187ap04_L
+    type: api
+    categories: [corporate]
+    priority: 10
+    role: primary
+    fetch_schedule: "35 */2 * * *"
+    expected_items: {min: 0, max: 40}
+    stale_after_hours: 6
+    terms: Taiwan government open data; retain source attribution and announcement text.
+    fallback: MOPS investor-conference list and TWSE WebPro schedule
+  - id: longbridge_earnings
+    name: Longbridge Earnings Calendar
+    institution: Longbridge
+    country: GLOBAL
+    official_url: https://open.longbridge.com/docs/market/calendar/earnings-calendar
+    type: api
+    categories: [corporate]
+    priority: 40
+    role: secondary
+    fetch_schedule: "45 */6 * * *"
+    expected_items: {min: 0, max: 120}
+    stale_after_hours: 12
+    enabled: false
+    terms: Free OpenAPI for an authorized Longbridge integrated account; OAuth required.
+    fallback: Finnhub and exchange disclosure sources

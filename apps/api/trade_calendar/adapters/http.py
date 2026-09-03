@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from trade_calendar.adapters.errors import (
     HttpStatusError,
@@ -25,7 +25,10 @@ class HttpFetcher:
         self.max_bytes = max_bytes
 
     @retry(
-        retry=retry_if_exception_type((NetworkError, HttpStatusError)),
+        retry=retry_if_exception(
+            lambda exc: isinstance(exc, (NetworkError, HttpStatusError))
+            and exc.retryable
+        ),
         wait=wait_exponential(multiplier=1, min=1, max=15),
         stop=stop_after_attempt(3),
         reraise=True,
@@ -66,4 +69,3 @@ class HttpFetcher:
                 if key.lower() in {"etag", "last-modified", "content-type"}
             },
         )
-

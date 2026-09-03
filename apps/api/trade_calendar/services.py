@@ -276,16 +276,20 @@ def event_query(
         if local_to else None
     )
     if from_at and local_from:
+        assert local_after is not None
         statement = statement.where(or_(Event.starts_at >= from_at, local_after))
     elif from_at:
         statement = statement.where(Event.starts_at >= from_at)
     elif local_from:
+        assert local_after is not None
         statement = statement.where(local_after)
     if to_at and local_to:
+        assert local_before is not None
         statement = statement.where(or_(Event.starts_at < to_at, local_before))
     elif to_at:
         statement = statement.where(Event.starts_at < to_at)
     elif local_to:
+        assert local_before is not None
         statement = statement.where(local_before)
     if country:
         statement = statement.where(Event.country_code == country.upper())

@@ -64,7 +64,7 @@ class SyncRunner:
                 parsed = adapter.parse(payload)
                 normalized = [adapter.normalize(item) for item in parsed]
                 health = adapter.health_check(normalized)
-                if not normalized:
+                if not normalized and not adapter.allow_empty:
                     raise EmptyResultError("source returned zero events")
                 run.parsed_count = len(normalized)
                 for item in normalized:
@@ -225,6 +225,13 @@ class SyncRunner:
             existing_link.observation_id = observation.id
             existing_link.last_verified_at = utc_now()
         primary_priority = await primary_source_priority(session, event.id)
+        if existing_link and source.priority < primary_priority:
+            links = list(await session.scalars(
+                select(EventSource).where(EventSource.event_id == event.id)
+            ))
+            for link in links:
+                link.is_primary = link.source_id == source.id
+            primary_priority = source.priority
         if source.priority > primary_priority and existing_link and not existing_link.is_primary:
             return "unchanged"
         updates = EventUpdate(
@@ -246,6 +253,7 @@ class SyncRunner:
             original_time_text=item.original_time_text,
             reference_period=item.reference_period,
             market_tags=item.market_tags,
+            tickers=item.tickers,
         )
         event, changed = await update_event(
             session, event, updates, request_id=str(run.id), actor_type="source"
@@ -281,7 +289,7 @@ async def create_canonical_event(
         original_time_text=item.original_time_text,
         reference_period=item.reference_period,
         market_tags=item.market_tags,
-        tickers=[],
+        tickers=item.tickers,
         reminder_enabled=True,
         is_manual=False,
         last_verified_at=utc_now(),
@@ -309,6 +317,12 @@ async def find_match(
     for candidate in candidates:
         candidate_date = candidate.starts_at.date() if candidate.starts_at else candidate.local_date
         similarity = SequenceMatcher(None, normalized, candidate.normalized_title).ratio()
+        if (
+            item.reference_period
+            and candidate.reference_period
+            and item.reference_period.casefold() == candidate.reference_period.casefold()
+        ):
+            return candidate, 0.99, "institution + event_type + reference period"
         if candidate_date == target_date and similarity >= 0.93:
             return candidate, 0.98, "institution + event_type + date + normalized title"
         if candidate_date == target_date:

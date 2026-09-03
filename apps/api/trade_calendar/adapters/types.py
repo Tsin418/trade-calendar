@@ -62,6 +62,7 @@ class NormalizedEvent(BaseModel):
     original_time_text: str | None = None
     reference_period: str | None = None
     market_tags: list[str] = Field(default_factory=list)
+    tickers: list[str] = Field(default_factory=list)
     source_url: str
     raw: dict[str, Any] = Field(default_factory=dict)
 

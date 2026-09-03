@@ -7,7 +7,7 @@ import { type AppSettings, fetchPublicMode, fetchSettings } from "@/lib/api";
 export const defaultSettings:AppSettings = {
   timezone:"Asia/Shanghai",
   language:"zh-CN",
-  markets:["US", "JP", "KR", "TW", "HK", "GLOBAL"],
+  markets:["US", "JP", "KR", "CN", "TW", "HK", "GLOBAL"],
   critical_lead_minutes:[120, 60, 15],
   high_lead_minutes:[60, 15],
   daily_summary:"07:30:00",

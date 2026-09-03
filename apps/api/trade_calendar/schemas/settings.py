@@ -3,11 +3,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-MarketCode = Literal["US", "JP", "KR", "TW", "HK", "GLOBAL"]
+MarketCode = Literal["US", "JP", "KR", "CN", "TW", "HK", "GLOBAL"]
 
 
 def default_markets() -> list[MarketCode]:
-    return ["US", "JP", "KR", "TW", "HK", "GLOBAL"]
+    return ["US", "JP", "KR", "CN", "TW", "HK", "GLOBAL"]
 
 
 class WebSettings(BaseModel):

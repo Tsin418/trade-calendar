@@ -8,6 +8,8 @@
 - Phase 1：已完成，Docker Compose 已实际启动，Playwright 桌面/移动端 E2E 通过。
 - Phase 2：已完成，人工事件 CRUD、版本、变更、字段锁和审计可用。
 - Phase 3～5：进行中；页面、Adapter/同步、提醒/ICS 核心已经建立。
+- 公司财报：50 家美日韩中港台 Watchlist 已建立；Finnhub、JPX、KRX KIND、TWSE
+  自动来源已启用，长桥来源等待 OAuth 后启用。
 - 默认时区：`Asia/Shanghai`。
 - 默认关注市场：美国、日本、韩国、台湾、香港及有限全球事件。
 

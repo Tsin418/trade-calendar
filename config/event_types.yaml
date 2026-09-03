@@ -130,7 +130,7 @@ market_tags:
   US: {name_zh: 美国, timezone: America/New_York}
   JP: {name_zh: 日本, timezone: Asia/Tokyo}
   KR: {name_zh: 韩国, timezone: Asia/Seoul}
+  CN: {name_zh: 中国大陆, timezone: Asia/Shanghai}
   TW: {name_zh: 台湾, timezone: Asia/Taipei}
   HK: {name_zh: 香港, timezone: Asia/Hong_Kong}
   GLOBAL: {name_zh: 全球, timezone: UTC}
-

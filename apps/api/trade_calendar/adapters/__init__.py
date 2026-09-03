@@ -3,6 +3,12 @@ from trade_calendar.adapters.bea import BeaScheduleAdapter
 from trade_calendar.adapters.bls import BlsCalendarAdapter
 from trade_calendar.adapters.boj import BojMeetingAdapter, BojReleaseScheduleAdapter
 from trade_calendar.adapters.bok import BokMeetingAdapter
+from trade_calendar.adapters.corporate import (
+    FinnhubEarningsAdapter,
+    JpxEarningsScheduleAdapter,
+    KrxKindEarningsCallAdapter,
+    TwseEarningsCallAdapter,
+)
 from trade_calendar.adapters.fed import FedFomcAdapter
 from trade_calendar.adapters.hong_kong import HkexCalendarAdapter, HongKongStatisticsAdapter
 from trade_calendar.adapters.http import HttpFetcher
@@ -15,10 +21,14 @@ __all__ = [
     "BojReleaseScheduleAdapter",
     "BokMeetingAdapter",
     "FedFomcAdapter",
+    "FinnhubEarningsAdapter",
     "HkexCalendarAdapter",
     "HongKongStatisticsAdapter",
     "HttpFetcher",
+    "JpxEarningsScheduleAdapter",
+    "KrxKindEarningsCallAdapter",
     "SourceAdapter",
     "TaiwanCbcMeetingAdapter",
     "TaiwanStatisticsAdapter",
+    "TwseEarningsCallAdapter",
 ]

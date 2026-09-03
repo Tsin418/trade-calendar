@@ -6,6 +6,7 @@ from trade_calendar.adapters.types import AdapterHealth, NormalizedEvent, RawPay
 class SourceAdapter(ABC):
     source_key: str
     version: str
+    allow_empty: bool = False
 
     @abstractmethod
     async def fetch(self) -> RawPayload:
@@ -21,6 +22,13 @@ class SourceAdapter(ABC):
 
     def health_check(self, events: list[NormalizedEvent]) -> AdapterHealth:
         if not events:
+            if self.allow_empty:
+                return AdapterHealth(
+                    healthy=True,
+                    event_count=0,
+                    completeness=1,
+                    warnings=["no matching watchlist events in the current source window"],
+                )
             return AdapterHealth(
                 healthy=False,
                 event_count=0,

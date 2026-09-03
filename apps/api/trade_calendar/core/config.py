@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     session_secret: SecretStr = SecretStr("development-only-change-me")
     feishu_webhook_url: SecretStr | None = None
+    finnhub_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("CALENDAR_FINNHUB_API_KEY", "FINNHUB_API_KEY"),
+    )
     ics_token: SecretStr = SecretStr("development-ics-token")
     config_dir: Path = Path("../../config")
     public_base_url: str = "http://localhost:3000"

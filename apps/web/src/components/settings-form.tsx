@@ -80,7 +80,7 @@ function EditableSettings({ initial, onSaved }:{ initial:AppSettings; onSaved:(s
 }
 
 const marketOptions:Array<[AppSettings["markets"][number], string]> = [
-  ["US", "美国 US"], ["JP", "日本 JP"], ["KR", "韩国 KR"], ["TW", "台湾 TW"], ["HK", "香港 HK"], ["GLOBAL", "全球 GLOBAL"],
+  ["US", "美国 US"], ["JP", "日本 JP"], ["KR", "韩国 KR"], ["CN", "中国大陆 CN"], ["TW", "台湾 TW"], ["HK", "香港 HK"], ["GLOBAL", "全球 GLOBAL"],
 ];
 
 function parseMinutes(value:string):number[] {

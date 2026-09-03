@@ -51,7 +51,7 @@ export type SyncRun = {
 export type AppSettings = {
   timezone:"Asia/Shanghai"|"Asia/Tokyo"|"America/New_York";
   language:"zh-CN";
-  markets:Array<"US"|"JP"|"KR"|"TW"|"HK"|"GLOBAL">;
+  markets:Array<"US"|"JP"|"KR"|"CN"|"TW"|"HK"|"GLOBAL">;
   critical_lead_minutes:number[];
   high_lead_minutes:number[];
   daily_summary:string;

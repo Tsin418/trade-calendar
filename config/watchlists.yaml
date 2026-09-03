@@ -1,20 +1,72 @@
-version: 1
-watched_markets: [US, JP, KR, TW, HK, GLOBAL]
+version: 2
+watched_markets: [US, JP, KR, CN, TW, HK, GLOBAL]
+
 companies:
-  - {ticker: NVDA, market: US, name_zh: 英伟达, enabled: true}
-  - {ticker: AAPL, market: US, name_zh: 苹果, enabled: true}
-  - {ticker: MSFT, market: US, name_zh: 微软, enabled: true}
-  - {ticker: 7203, market: JP, name_zh: 丰田汽车, enabled: true}
-  - {ticker: 6758, market: JP, name_zh: 索尼集团, enabled: true}
-  - {ticker: 005930, market: KR, name_zh: 三星电子, enabled: true}
-  - {ticker: 000660, market: KR, name_zh: SK 海力士, enabled: true}
-  - {ticker: 2330, market: TW, name_zh: 台积电, enabled: true}
-  - {ticker: 0700, market: HK, name_zh: 腾讯控股, enabled: true}
-  - {ticker: 9988, market: HK, name_zh: 阿里巴巴, enabled: true}
+  # United States
+  - {id: nvidia, ticker: NVDA, market: US, name_zh: 英伟达, name_en: NVIDIA, finnhub_symbol: NVDA, longbridge_symbol: NVDA.US, enabled: true}
+  - {id: apple, ticker: AAPL, market: US, name_zh: 苹果, name_en: Apple, finnhub_symbol: AAPL, longbridge_symbol: AAPL.US, enabled: true}
+  - {id: microsoft, ticker: MSFT, market: US, name_zh: 微软, name_en: Microsoft, finnhub_symbol: MSFT, longbridge_symbol: MSFT.US, enabled: true}
+  - {id: alphabet, ticker: GOOGL, market: US, name_zh: Alphabet, name_en: Alphabet, finnhub_symbol: GOOGL, longbridge_symbol: GOOGL.US, enabled: true}
+  - {id: amazon, ticker: AMZN, market: US, name_zh: 亚马逊, name_en: Amazon, finnhub_symbol: AMZN, longbridge_symbol: AMZN.US, enabled: true}
+  - {id: broadcom, ticker: AVGO, market: US, name_zh: 博通, name_en: Broadcom, finnhub_symbol: AVGO, longbridge_symbol: AVGO.US, enabled: true}
+  - {id: meta, ticker: META, market: US, name_zh: Meta Platforms, name_en: Meta Platforms, finnhub_symbol: META, longbridge_symbol: META.US, enabled: true}
+  - {id: tesla, ticker: TSLA, market: US, name_zh: 特斯拉, name_en: Tesla, finnhub_symbol: TSLA, longbridge_symbol: TSLA.US, enabled: true}
+  - {id: micron, ticker: MU, market: US, name_zh: 美光科技, name_en: Micron Technology, finnhub_symbol: MU, longbridge_symbol: MU.US, enabled: true}
+  - {id: jpmorgan, ticker: JPM, market: US, name_zh: 摩根大通, name_en: JPMorgan Chase, finnhub_symbol: JPM, longbridge_symbol: JPM.US, enabled: true}
+
+  # Japan — use the most reliable US ADR/OTC alias on Finnhub's free tier.
+  - {id: toyota, ticker: "7203", market: JP, name_zh: 丰田汽车, name_en: Toyota Motor, finnhub_symbol: TM, longbridge_symbol: TM.US, source_names: [トヨタ自動車], ir_url: "https://global.toyota/en/ir/", enabled: true}
+  - {id: mufg, ticker: "8306", market: JP, name_zh: 三菱日联金融, name_en: Mitsubishi UFJ Financial Group, finnhub_symbol: MUFG, longbridge_symbol: MUFG.US, source_names: [三菱ＵＦＪフィナンシャル・グループ], ir_url: "https://www.mufg.jp/english/ir/index.html", enabled: true}
+  - {id: hitachi, ticker: "6501", market: JP, name_zh: 日立制作所, name_en: Hitachi, finnhub_symbol: HTHIY, source_names: [日立製作所], ir_url: "https://www.hitachi.com/IR-e/", enabled: true}
+  - {id: softbank_group, ticker: "9984", market: JP, name_zh: 软银集团, name_en: SoftBank Group, finnhub_symbol: SFTBY, source_names: [ソフトバンクグループ], ir_url: "https://group.softbank/en/ir/calendar", enabled: true}
+  - {id: sony, ticker: "6758", market: JP, name_zh: 索尼集团, name_en: Sony Group, finnhub_symbol: SONY, longbridge_symbol: SONY.US, source_names: [ソニーグループ], ir_url: "https://www.sony.com/en/SonyInfo/IR/", enabled: true}
+  - {id: fast_retailing, ticker: "9983", market: JP, name_zh: 迅销集团, name_en: Fast Retailing, finnhub_symbol: FRCOY, source_names: [ファーストリテイリング], ir_url: "https://www.fastretailing.com/eng/ir/calendar/", enabled: true}
+  - {id: tokyo_electron, ticker: "8035", market: JP, name_zh: 东京电子, name_en: Tokyo Electron, finnhub_symbol: TOELY, source_names: [東京エレクトロン], ir_url: "https://www.tel.com/ir/calendar/index.html", enabled: true}
+  - {id: nintendo, ticker: "7974", market: JP, name_zh: 任天堂, name_en: Nintendo, finnhub_symbol: NTDOY, source_names: [任天堂], ir_url: "https://www.nintendo.co.jp/ir/en/schedule/index.html", enabled: true}
+
+  # South Korea
+  - {id: samsung_electronics, ticker: "005930", market: KR, name_zh: 三星电子, name_en: Samsung Electronics, finnhub_symbol: SSNLF, source_names: [삼성전자], enabled: true}
+  - {id: sk_hynix, ticker: "000660", market: KR, name_zh: SK海力士, name_en: SK hynix, finnhub_symbol: SKHY, longbridge_symbol: SKHY.US, source_names: [SK하이닉스], enabled: true}
+  - {id: hyundai_motor, ticker: "005380", market: KR, name_zh: 现代汽车, name_en: Hyundai Motor, finnhub_symbol: HYMTF, source_names: [현대자동차], enabled: true}
+  - {id: lg_energy_solution, ticker: "373220", market: KR, name_zh: LG新能源, name_en: LG Energy Solution, finnhub_symbol: 373220.KS, source_names: [LG에너지솔루션], enabled: true}
+  - {id: samsung_biologics, ticker: "207940", market: KR, name_zh: 三星生物制剂, name_en: Samsung Biologics, finnhub_symbol: 207940.KS, source_names: [삼성바이오로직스], enabled: true}
+  - {id: kb_financial, ticker: "105560", market: KR, name_zh: KB金融集团, name_en: KB Financial Group, finnhub_symbol: KB, longbridge_symbol: KB.US, source_names: [KB금융], enabled: true}
+  - {id: naver, ticker: "035420", market: KR, name_zh: NAVER, name_en: NAVER, finnhub_symbol: 035420.KS, source_names: [네이버], enabled: true}
+  - {id: lg_electronics, ticker: "066570", market: KR, name_zh: LG电子, name_en: LG Electronics, finnhub_symbol: LGEIY, source_names: [LG전자], enabled: true}
+
+  # Mainland China
+  - {id: catl, ticker: "300750", market: CN, name_zh: 宁德时代, name_en: CATL, finnhub_symbol: 300750.SZ, longbridge_symbol: 300750.SZ, enabled: true}
+  - {id: kweichow_moutai, ticker: "600519", market: CN, name_zh: 贵州茅台, name_en: Kweichow Moutai, finnhub_symbol: 600519.SS, longbridge_symbol: 600519.SH, enabled: true}
+  - {id: icbc, ticker: "601398", market: CN, name_zh: 工商银行, name_en: Industrial and Commercial Bank of China, finnhub_symbol: IDCBY, longbridge_symbol: 601398.SH, enabled: true}
+  - {id: china_mobile_a, ticker: "600941", market: CN, name_zh: 中国移动, name_en: China Mobile, finnhub_symbol: 600941.SS, longbridge_symbol: 600941.SH, enabled: true}
+  - {id: petrochina, ticker: "601857", market: CN, name_zh: 中国石油, name_en: PetroChina, finnhub_symbol: PCCYF, longbridge_symbol: 601857.SH, enabled: true}
+  - {id: smic_a, ticker: "688981", market: CN, name_zh: 中芯国际, name_en: Semiconductor Manufacturing International, finnhub_symbol: 688981.SS, longbridge_symbol: 688981.SH, enabled: true}
+  - {id: byd_a, ticker: "002594", market: CN, name_zh: 比亚迪, name_en: BYD, finnhub_symbol: BYDDY, longbridge_symbol: 002594.SZ, enabled: true}
+  - {id: fii, ticker: "601138", market: CN, name_zh: 工业富联, name_en: Foxconn Industrial Internet, finnhub_symbol: 601138.SS, longbridge_symbol: 601138.SH, enabled: true}
+
+  # Hong Kong
+  - {id: hsbc, ticker: "0005", market: HK, name_zh: 汇丰控股, name_en: HSBC Holdings, finnhub_symbol: HSBC, longbridge_symbol: 5.HK, enabled: true}
+  - {id: tencent, ticker: "0700", market: HK, name_zh: 腾讯控股, name_en: Tencent Holdings, finnhub_symbol: TCEHY, longbridge_symbol: 700.HK, enabled: true}
+  - {id: alibaba, ticker: "9988", market: HK, name_zh: 阿里巴巴, name_en: Alibaba Group, finnhub_symbol: BABA, longbridge_symbol: 9988.HK, enabled: true}
+  - {id: ccb_h, ticker: "0939", market: HK, name_zh: 建设银行H股, name_en: China Construction Bank, finnhub_symbol: CICHY, longbridge_symbol: 939.HK, enabled: true}
+  - {id: aia, ticker: "1299", market: HK, name_zh: 友邦保险, name_en: AIA Group, finnhub_symbol: AAGIY, longbridge_symbol: 1299.HK, enabled: true}
+  - {id: xiaomi, ticker: "1810", market: HK, name_zh: 小米集团, name_en: Xiaomi, finnhub_symbol: XIACF, longbridge_symbol: 1810.HK, enabled: true}
+  - {id: meituan, ticker: "3690", market: HK, name_zh: 美团, name_en: Meituan, finnhub_symbol: MPNGY, longbridge_symbol: 3690.HK, enabled: true}
+  - {id: hkex, ticker: "0388", market: HK, name_zh: 香港交易所, name_en: Hong Kong Exchanges and Clearing, finnhub_symbol: HKXCY, longbridge_symbol: 388.HK, enabled: true}
+
+  # Taiwan
+  - {id: tsmc, ticker: "2330", market: TW, name_zh: 台积电, name_en: TSMC, finnhub_symbol: TSM, source_names: [台積電, 台灣積體電路製造], enabled: true}
+  - {id: hon_hai, ticker: "2317", market: TW, name_zh: 鸿海精密, name_en: Hon Hai Precision, finnhub_symbol: HNHPF, source_names: [鴻海], enabled: true}
+  - {id: delta_electronics, ticker: "2308", market: TW, name_zh: 台达电子, name_en: Delta Electronics, finnhub_symbol: DELTY, source_names: [台達電], enabled: true}
+  - {id: mediatek, ticker: "2454", market: TW, name_zh: 联发科, name_en: MediaTek, finnhub_symbol: MDTKF, source_names: [聯發科], enabled: true}
+  - {id: fubon_financial, ticker: "2881", market: TW, name_zh: 富邦金控, name_en: Fubon Financial, finnhub_symbol: 2881.TW, source_names: [富邦金], enabled: true}
+  - {id: cathay_financial, ticker: "2882", market: TW, name_zh: 国泰金控, name_en: Cathay Financial, finnhub_symbol: 2882.TW, source_names: [國泰金], enabled: true}
+  - {id: ase, ticker: "3711", market: TW, name_zh: 日月光投控, name_en: ASE Technology Holding, finnhub_symbol: ASX, longbridge_symbol: ASX.US, source_names: [日月光投控], enabled: true}
+  - {id: quanta, ticker: "2382", market: TW, name_zh: 广达电脑, name_en: Quanta Computer, finnhub_symbol: QUCCF, source_names: [廣達], enabled: true}
+
 keywords:
   - {value: 关税, category: policy, enabled: true}
   - {value: 出口管制, category: policy, enabled: true}
   - {value: 半导体, category: policy, enabled: true}
   - {value: 房地产政策, category: policy, enabled: true}
   - {value: 财政刺激, category: policy, enabled: true}
-

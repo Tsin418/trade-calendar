@@ -19,8 +19,15 @@ from trade_calendar.adapters import (
     TaiwanCbcMeetingAdapter,
     TaiwanStatisticsAdapter,
 )
+from trade_calendar.adapters.corporate import (
+    FinnhubEarningsAdapter,
+    JpxEarningsScheduleAdapter,
+    KrxKindEarningsCallAdapter,
+    TwseEarningsCallAdapter,
+)
 from trade_calendar.core.config import Settings, get_settings
 from trade_calendar.models.domain import Source, SourceHealth
+from trade_calendar.watchlist import load_company_watchlist
 
 
 def load_source_config(config_dir: Path) -> list[dict[str, Any]]:
@@ -30,11 +37,25 @@ def load_source_config(config_dir: Path) -> list[dict[str, Any]]:
     return list(document.get("sources", []))
 
 
+def setting_is_configured(settings: Settings, name: str | None) -> bool:
+    if not name:
+        return True
+    value = getattr(settings, name, None)
+    if value is None:
+        return False
+    get_secret_value = getattr(value, "get_secret_value", None)
+    if callable(get_secret_value):
+        return bool(get_secret_value())
+    return bool(value)
+
+
 async def seed_sources(session: AsyncSession, settings: Settings | None = None) -> int:
     settings = settings or get_settings()
     count = 0
     for item in load_source_config(settings.config_dir):
         source = await session.scalar(select(Source).where(Source.key == item["id"]))
+        required_setting = item.get("requires_setting")
+        configured = setting_is_configured(settings, required_setting)
         values = {
             "name": item["name"],
             "institution": item["institution"],
@@ -42,7 +63,7 @@ async def seed_sources(session: AsyncSession, settings: Settings | None = None) 
             "official_url": item["official_url"],
             "source_type": item["type"],
             "priority": item["priority"],
-            "enabled": item.get("enabled", True),
+            "enabled": item.get("enabled", True) and configured,
             "schedule": item["fetch_schedule"],
             "stale_after_hours": item["stale_after_hours"],
         }
@@ -69,7 +90,8 @@ async def seed_sources(session: AsyncSession, settings: Settings | None = None) 
 def adapter_registry(settings: Settings | None = None) -> dict[str, SourceAdapter]:
     settings = settings or get_settings()
     fetcher = HttpFetcher(user_agent="TradeCalendar/0.1 (+private single-user calendar)")
-    return {
+    companies = load_company_watchlist(settings.config_dir)
+    registry: dict[str, SourceAdapter] = {
         "fed_fomc_calendar": FedFomcAdapter(fetcher),
         "us_bls_calendar": BlsCalendarAdapter(fetcher),
         "us_bea_schedule": BeaScheduleAdapter(fetcher),
@@ -80,4 +102,15 @@ def adapter_registry(settings: Settings | None = None) -> dict[str, SourceAdapte
         "taiwan_dgbas_calendar": TaiwanStatisticsAdapter(fetcher),
         "hk_censtatd_schedule": HongKongStatisticsAdapter(fetcher),
         "hkex_calendar": HkexCalendarAdapter(fetcher),
+        "jpx_earnings_schedule": JpxEarningsScheduleAdapter(fetcher, companies),
+        "krx_kind_earnings_calls": KrxKindEarningsCallAdapter(fetcher, companies),
+        "twse_earnings_calls": TwseEarningsCallAdapter(fetcher, companies),
     }
+    if setting_is_configured(settings, "finnhub_api_key"):
+        assert settings.finnhub_api_key is not None
+        registry["finnhub_earnings"] = FinnhubEarningsAdapter(
+            fetcher,
+            settings.finnhub_api_key,
+            companies,
+        )
+    return registry
