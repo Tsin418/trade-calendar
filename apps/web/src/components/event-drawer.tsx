@@ -4,6 +4,7 @@ import { Check, ExternalLink, LockKeyhole, Save, ShieldCheck, UnlockKeyhole, X }
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 
 import { type ApiEvent, type ApiEventSource, fetchEventSources, fetchLocks, saveEvent, setFieldLock } from "@/lib/api";
+import { eventTitle } from "@/lib/event-title";
 
 import { usePreferences } from "./preferences-context";
 
@@ -75,7 +76,7 @@ export function EventDrawer({ event, defaultDate, onClose, onSaved }: { event:Ap
 
   const localStart = event?.starts_at ? toLocalInput(event.starts_at) : `${defaultDate}T09:00`;
   return <div className="drawer-backdrop" role="presentation" onMouseDown={(mouseEvent) => { if (mouseEvent.target === mouseEvent.currentTarget) onClose(); }}>
-    <aside className="event-drawer" role="dialog" aria-modal="true" aria-label={event ? `${readOnly ? "查看" : "编辑"} ${event.title_zh}` : "人工新增事件"}>
+    <aside className="event-drawer" role="dialog" aria-modal="true" aria-label={event ? `${readOnly ? "查看" : "编辑"} ${eventTitle(event)}` : "人工新增事件"}>
       <div className="drawer-head"><div><span><ShieldCheck size={16} />{readOnly ? "公开信息" : event ? `版本 ${event.current_version}` : "人工来源"}</span><h2>{readOnly ? "事件详情" : event ? "事件详情与编辑" : "新增事件"}</h2></div><button onClick={onClose} aria-label="关闭"><X size={18} /></button></div>
       <form onSubmit={submit}>
         <fieldset className="drawer-fields" disabled={readOnly}>

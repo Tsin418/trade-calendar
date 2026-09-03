@@ -95,16 +95,16 @@ sources:
     name: Korea Ministry of Data and Statistics Release Plan
     institution: Ministry of Data and Statistics, Republic of Korea
     country: KR
-    official_url: https://mods.go.kr/newsPln.es?mid=a10305000000&oa_mm=ALL
+    official_url: https://mods.go.kr/schdl.es?mid=a20301000000
     type: html
     categories: [macro_release]
     priority: 20
     role: primary
     fetch_schedule: "10 */12 * * *"
-    expected_items: {min: 5, max: 400}
+    expected_items: {min: 30, max: 60}
     stale_after_hours: 72
-    terms: Official Korean government release plan; retain source attribution and the original Korean title.
-    fallback: Ministry press releases and the monthly downloadable release plan
+    terms: Official English annual schedule; retain Ministry attribution. Korean release plan is used only to recover the announced local release time.
+    fallback: Ministry English press releases and the Korean monthly release plan
   - id: taiwan_cbc
     name: Taiwan Central Bank Press Releases
     institution: Central Bank of the Republic of China (Taiwan)

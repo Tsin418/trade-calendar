@@ -117,7 +117,7 @@ def test_bok_current_year_meeting_table() -> None:
 
 
 def test_korea_release_plan_parses_full_official_schedule() -> None:
-    html = """
+    korean_html = """
     <h3>2026년 전체 보도계획</h3>
     <table><tbody>
       <tr class="tr-notice"><td>09.02.( 수 )</td><td>08:00</td>
@@ -126,19 +126,38 @@ def test_korea_release_plan_parses_full_official_schedule() -> None:
         <td>2026년 8월 고용동향</td><td>고용통계과</td><td></td></tr>
     </tbody></table>
     """
+    english_html = """
+    <h3>2026 Schedule</h3>
+    <table><tbody>
+      <tr class="center"><td>Sep.</td>
+        <td>The Consumer Price Index in August 2026</td>
+        <td>Sep. 02 (Wed.)</td><td>Price Statistics Division</td></tr>
+      <tr class="center"><td>Sep.</td>
+        <td>The Economically Active Population Survey in August 2026</td>
+        <td>Sep. 09 (Wed.)</td><td>Employment Statistics Division</td></tr>
+    </tbody></table>
+    """
+    document = {
+        "english_url": "https://mods.go.kr/schedule",
+        "english_html": english_html,
+        "korean_url": "https://mods.go.kr/release-plan",
+        "korean_html": korean_html,
+    }
     adapter = KoreaStatisticsCalendarAdapter(
         fetcher(),
         today=lambda: date(2026, 9, 3),
         now=lambda: datetime(2026, 9, 3, tzinfo=UTC),
     )
-    events = adapter.parse(payload(adapter.source_key, html))
+    events = adapter.parse(payload(adapter.source_key, json.dumps(document)))
     assert len(events) == 2
     inflation = adapter.normalize(events[0])
     employment = adapter.normalize(events[1])
     assert inflation.starts_at == datetime(2026, 9, 1, 23, 0, tzinfo=UTC)
     assert inflation.title_zh == "韩国消费者物价指数"
+    assert inflation.title_original == "The Consumer Price Index in August 2026"
     assert inflation.reference_period == "2026-08"
     assert employment.title_zh == "韩国就业数据"
+    assert employment.raw["title_ko"] == "2026년 8월 고용동향"
     assert employment.status.value == "confirmed"
 
 

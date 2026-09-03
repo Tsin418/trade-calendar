@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyEvents } from "@/components/daily-events";
 import { type ApiEvent, fetchEvents } from "@/lib/api";
 import { addDays, dateKeyInTimezone, zonedDayRange } from "@/lib/date-time";
+import { eventTitle } from "@/lib/event-title";
 import { appendFilters, type FilterValues } from "@/lib/filters";
 import type { CalendarEvent } from "@/lib/demo-events";
 
@@ -68,8 +69,7 @@ export function toCalendarEvent(event:ApiEvent): CalendarEvent {
   const precision = event.date_precision === "date" || !event.starts_at ? "date" : "minute";
   return {
     id:event.id,
-    title:event.title_zh,
-    originalTitle:event.title_original ?? event.title_zh,
+    title:eventTitle(event),
     institution:event.institution,
     country:event.country_code,
     market:event.market_tags[0] ?? event.country_code,

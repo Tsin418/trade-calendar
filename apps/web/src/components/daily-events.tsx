@@ -16,7 +16,7 @@ export function DailyEvents({ events, showPassed = false, onSelect, timezone = "
           <article className={`day-event ${showPassed && index === 0 ? "passed" : ""} ${index === 1 ? "next" : ""}`} key={event.id}>
             <div className="day-time"><strong>{event.start ? formatEventTime(event.start, timezone) : "—"}</strong><span>{event.originalTime}</span></div>
             <i className={`impact-dot ${event.importance}`} />
-            <div className="day-event-copy"><p><b>{event.country}</b>{event.institution} · {event.category}</p><h3>{event.title}</h3><small>{event.originalTitle}</small></div>
+            <div className="day-event-copy"><p><b>{event.country}</b>{event.institution} · {event.category}</p><h3>{event.title}</h3>{event.originalTitle && event.originalTitle !== event.title && <small>{event.originalTitle}</small>}</div>
             <div className="day-tags"><span className={`level ${event.importance}`}>{labels.importance[event.importance]}</span><span className={`status ${event.status}`}>{labels.status[event.status]}</span></div>
             <div className="row-actions"><button aria-label="个人备注"><MessageSquareText size={15} /></button><button aria-label="提醒"><Bell size={15} /></button><button aria-label={`查看 ${event.title}`} onClick={() => onSelect?.(event)}><ChevronRight size={17} /></button></div>
           </article>

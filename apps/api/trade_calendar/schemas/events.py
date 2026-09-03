@@ -1,9 +1,17 @@
+import re
 from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 from trade_calendar.models.domain import DatePrecision, EventStatus, Importance
 
@@ -138,6 +146,16 @@ class EventRead(BaseModel):
     last_verified_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_title(self) -> str:
+        original = (self.title_original or "").strip()
+        if not original:
+            return self.title_zh
+        if re.search(r"[\u3040-\u30ff\uac00-\ud7af]", original):
+            return self.title_zh
+        return original
 
     @field_validator("starts_at", "ends_at", mode="before")
     @classmethod

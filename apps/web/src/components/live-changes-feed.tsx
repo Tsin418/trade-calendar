@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { type ApiChange, type ApiEvent, type ApiSource, fetchChanges, fetchEvent, fetchSources } from "@/lib/api";
 import { formatEventDateTime } from "@/lib/date-time";
+import { eventTitle } from "@/lib/event-title";
 import type { FilterValues } from "@/lib/filters";
 
 import { usePreferences } from "./preferences-context";
@@ -62,7 +63,7 @@ function ChangeCard({ row, timezone }:{ row:ChangeRow; timezone:string }) {
   return <article className="change-card">
     <span className={`change-kind ${meta.tone}`}><Icon size={17} /></span>
     <div className="change-main">
-      <div><h3>{meta.label}{event ? `：${event.title_zh}` : ""}</h3><p>{event ? `${event.institution} · ${event.country_code}` : `事件 ${change.event_id}`}{source && <a className="evidence-link" href={source.official_url} target="_blank" rel="noreferrer">官方来源 <ExternalLink size={11} /></a>}</p></div>
+      <div><h3>{meta.label}{event ? `：${eventTitle(event)}` : ""}</h3><p>{event ? `${event.institution} · ${event.country_code}` : `事件 ${change.event_id}`}{source && <a className="evidence-link" href={source.official_url} target="_blank" rel="noreferrer">官方来源 <ExternalLink size={11} /></a>}</p></div>
       <div className="diff"><span>{diff.old}</span><ArrowRight size={15} /><strong>{diff.next}</strong></div>
     </div>
     <time>{formatRelative(change.created_at)}</time>

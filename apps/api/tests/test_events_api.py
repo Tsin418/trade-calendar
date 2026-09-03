@@ -19,6 +19,7 @@ async def test_create_event_is_idempotent_and_versioned(
     assert first.json()["id"] == second.json()["id"]
     assert first.json()["starts_at"] == "2026-09-16T18:00:00Z"
     assert first.json()["country_code"] == "US"
+    assert first.json()["display_title"] == "Federal Open Market Committee Meeting"
 
     source_response = await client.get(f"/api/v1/events/{first.json()['id']}/sources")
     assert source_response.status_code == 200
@@ -49,6 +50,7 @@ async def test_date_only_event_never_fabricates_midnight(client: AsyncClient) ->
     assert response.status_code == 201
     assert response.json()["local_date"] == "2026-10-15"
     assert response.json()["starts_at"] is None
+    assert response.json()["display_title"] == "台积电财报发布"
 
     invalid = dict(payload, starts_at="2026-10-15T00:00:00+08:00")
     invalid["idempotency_key"] = "invalid-midnight"

@@ -3,6 +3,7 @@ export type ApiEvent = {
   canonical_key: string;
   title_zh: string;
   title_original: string | null;
+  display_title: string;
   institution: string;
   country_code: string;
   category: string;

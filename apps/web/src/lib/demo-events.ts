@@ -1,7 +1,7 @@
 export type CalendarEvent = {
   id: string;
   title: string;
-  originalTitle: string;
+  originalTitle?: string;
   institution: string;
   country: string;
   market: string;

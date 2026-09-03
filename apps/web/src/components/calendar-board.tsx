@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EventDrawer } from "@/components/event-drawer";
 import { type ApiEvent, fetchEvents } from "@/lib/api";
 import { addDays, dateKeyInTimezone, formatDateRange } from "@/lib/date-time";
+import { eventTitle } from "@/lib/event-title";
 import { appendFilters, type FilterValues } from "@/lib/filters";
 import { labels } from "@/lib/demo-events";
 
@@ -53,7 +54,7 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
       : "";
     return {
       id: event.id,
-      title: `${dateRange}${labels.importance[event.importance]} · ${event.title_zh}`,
+      title: `${dateRange}${labels.importance[event.importance]} · ${eventTitle(event)}`,
       start: event.starts_at ?? event.date_range_start ?? event.local_date ?? undefined,
       end: event.starts_at
         ? event.ends_at ?? undefined
