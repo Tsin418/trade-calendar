@@ -1,12 +1,24 @@
+ARG TARGETARCH=amd64
+
+FROM scratch AS longbridge-amd64
+ADD --checksum=sha256:8f9f11fe79e3520ee0542e5f2f645b16632d76fedebbbda7e365d3a2c55e6c86 \
+    https://github.com/longbridge/longbridge-terminal/releases/download/v0.28.4/longbridge-terminal-linux-musl-amd64.tar.gz \
+    /longbridge.tar.gz
+
+FROM scratch AS longbridge-arm64
+ADD --checksum=sha256:e149ef28435e8d8196287b5fc1d79f663cd7186a4b583f42e831a5d82315019a \
+    https://github.com/longbridge/longbridge-terminal/releases/download/v0.28.4/longbridge-terminal-linux-musl-arm64.tar.gz \
+    /longbridge.tar.gz
+
+FROM longbridge-${TARGETARCH} AS longbridge
+
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-ADD --checksum=sha256:8f9f11fe79e3520ee0542e5f2f645b16632d76fedebbbda7e365d3a2c55e6c86 \
-    https://assets.lbkrs.com/github/release/longbridge-terminal/v0.28.4/longbridge-terminal-linux-musl-amd64.tar.gz \
-    /tmp/longbridge.tar.gz
+COPY --from=longbridge /longbridge.tar.gz /tmp/longbridge.tar.gz
 
 RUN addgroup --system calendar \
     && adduser --system --ingroup calendar --home /home/calendar calendar \

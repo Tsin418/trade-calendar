@@ -7,6 +7,7 @@ x-app-environment: &app-environment
   CALENDAR_SESSION_SECRET: ${CALENDAR_SESSION_SECRET:-development-only-change-me}
   CALENDAR_ICS_TOKEN: ${CALENDAR_ICS_TOKEN:-development-ics-token}
   CALENDAR_FEISHU_WEBHOOK_URL: ${CALENDAR_FEISHU_WEBHOOK_URL:-}
+  CALENDAR_PUBLIC_BASE_URL: ${CALENDAR_PUBLIC_BASE_URL:-http://localhost:3000}
   CALENDAR_CONFIG_DIR: /app/config
 
 x-app-env-files: &app-env-files
