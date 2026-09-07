@@ -12,10 +12,13 @@ import { type ApiEvent, fetchEvents } from "@/lib/api";
 import { addDays, dateKeyInTimezone, formatDateRange } from "@/lib/date-time";
 import { eventTitle } from "@/lib/event-title";
 import { appendFilters, type FilterValues } from "@/lib/filters";
-import { labels } from "@/lib/demo-events";
 import { useLoadRetry } from "@/lib/use-load-retry";
 
 import { usePreferences } from "./preferences-context";
+
+const countryAbbreviations:Record<string, string> = {
+  CN:"中", JP:"日", KR:"韩", TW:"台", US:"美", HK:"港", GLOBAL:"全球",
+};
 
 export function CalendarBoard({ view, filters }: { view: "week" | "month"; filters:FilterValues }) {
   const { settings } = usePreferences();
@@ -51,12 +54,14 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
     return () => window.clearTimeout(timer);
   }, [load, range, attempt]);
   const calendarEvents = events.map((event) => {
+    const countryCode = event.country_code.trim().toUpperCase();
+    const country = countryAbbreviations[countryCode] ?? (countryCode || "未知");
     const dateRange = event.date_range_start && event.date_range_end
       ? `${formatDateRange(event.date_range_start, event.date_range_end)} · `
       : "";
     return {
       id: event.id,
-      title: `${dateRange}${labels.importance[event.importance]} · ${eventTitle(event)}`,
+      title: `${country} · ${dateRange}${eventTitle(event)}`,
       start: event.starts_at ?? event.date_range_start ?? event.local_date ?? undefined,
       end: event.starts_at
         ? event.ends_at ?? undefined
