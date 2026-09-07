@@ -39,6 +39,16 @@ def test_quarter_notation_can_be_localized_without_changing_the_reporting_period
     assert translations.reference_numbers("2026年第4季度生活人口估算结果") != expected
 
 
+@pytest.mark.parametrize(("original", "translated"), [
+    ("2026 통계로 보는 1인가구", "2026年单人家户统计"),
+    ("정부 출범 1주년 성과", "政府成立一周年成果"),
+    ("제23차 OECD 통계 정책위원회", "OECD第二十三次统计政策委员会会议"),
+    ("2025년 3/4분기(8월기준)", "2025年第三季度（截至八月）"),
+])
+def test_localized_counters_preserve_numeric_meaning(original: str, translated: str) -> None:
+    assert translations.reference_numbers(original) == translations.reference_numbers(translated)
+
+
 @pytest.mark.parametrize("result", [
     {"translations": []},
     {"translations": ["아직 한국어"]},
