@@ -31,6 +31,14 @@ def test_legacy_mixed_titles_do_not_leak_through_fallbacks() -> None:
     assert display_text("Consumer Price Index", {}) == "Consumer Price Index"
 
 
+def test_quarter_notation_can_be_localized_without_changing_the_reporting_period() -> None:
+    expected = translations.reference_numbers("2025년 4/4분기 생활인구 산정 결과")
+    assert translations.reference_numbers("2025年第四季度生活人口估算结果") == expected
+    assert translations.reference_numbers("2025年第4季度生活人口估算结果") == expected
+    assert translations.reference_numbers("2025年第3季度生活人口估算结果") != expected
+    assert translations.reference_numbers("2026年第4季度生活人口估算结果") != expected
+
+
 @pytest.mark.parametrize("result", [
     {"translations": []},
     {"translations": ["아직 한국어"]},
