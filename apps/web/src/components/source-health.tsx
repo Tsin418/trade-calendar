@@ -4,6 +4,7 @@ import { AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, Clock3, Databas
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type ApiSource, fetchSources, type SourceHealth } from "@/lib/api";
+import { useLoadRetry } from "@/lib/use-load-retry";
 
 const healthLabels: Record<SourceHealth, string> = {
   healthy:"健康",
@@ -27,10 +28,11 @@ const categoryLabels: Record<string,string> = {
   corporate:"公司事件",
 };
 
-function useSourceHealth() {
+export function useSourceHealth() {
   const [sources, setSources] = useState<ApiSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string|null>(null);
+  const { attempt } = useLoadRetry(Boolean(error), loading);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,7 +50,7 @@ function useSourceHealth() {
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [load, attempt]);
 
   return { sources, loading, error, load };
 }

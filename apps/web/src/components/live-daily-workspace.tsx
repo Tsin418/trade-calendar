@@ -9,6 +9,7 @@ import { addDays, dateKeyInTimezone, zonedDayRange } from "@/lib/date-time";
 import { eventTitle } from "@/lib/event-title";
 import { appendFilters, type FilterValues } from "@/lib/filters";
 import type { CalendarEvent } from "@/lib/demo-events";
+import { useLoadRetry } from "@/lib/use-load-retry";
 
 import { EventDrawer } from "./event-drawer";
 import { usePreferences } from "./preferences-context";
@@ -21,6 +22,7 @@ export function LiveDailyWorkspace({ offsetDays = 0, filters, showPassed = false
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { attempt } = useLoadRetry(Boolean(error), loading);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,7 +44,7 @@ export function LiveDailyWorkspace({ offsetDays = 0, filters, showPassed = false
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [load, attempt]);
 
   const calendarEvents = useMemo(() => events.map(toCalendarEvent), [events]);
   function select(event:CalendarEvent) {

@@ -7,18 +7,21 @@ import { type ApiChange, type ApiEvent, type ApiSource, fetchChanges, fetchEvent
 import { formatEventDateTime } from "@/lib/date-time";
 import { eventTitle } from "@/lib/event-title";
 import type { FilterValues } from "@/lib/filters";
+import { useLoadRetry } from "@/lib/use-load-retry";
 
 import { usePreferences } from "./preferences-context";
 
 type ChangeRow = { change:ApiChange; event:ApiEvent|null; source:ApiSource|null };
 
 export function LiveChangesFeed({ filters }:{ filters:FilterValues }) {
-  const { settings, readOnly } = usePreferences();
+  const { settings, readOnly, loading:preferencesLoading } = usePreferences();
   const [rows, setRows] = useState<ChangeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string|null>(null);
+  const { attempt, retry } = useLoadRetry(Boolean(error) && !readOnly, loading);
 
   useEffect(() => {
+    if (readOnly || preferencesLoading) return;
     let cancelled = false;
     async function load() {
       setLoading(true);
@@ -43,13 +46,13 @@ export function LiveChangesFeed({ filters }:{ filters:FilterValues }) {
     }
     void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [attempt, readOnly, preferencesLoading]);
 
   const filtered = useMemo(() => rows.filter((row) => matchesFilters(row, filters)), [filters, rows]);
   if (readOnly) return <div className="read-only-notice">公开链接不展示内部版本和审计记录。</div>;
   return <section className="panel change-feed" aria-busy={loading}>
     <div className="panel-head"><div><h2>变更记录</h2><p>{loading ? "正在读取…" : error ? "数据不可用" : `${filtered.length} 条符合条件`}</p></div></div>
-    {error && <div className="data-error" role="alert"><AlertCircle size={16} />{error}。当前不展示演示变更。</div>}
+    {error && <div className="data-error" role="alert"><AlertCircle size={16} /><span>{error}。连接恢复后将自动重试。</span><button onClick={retry} disabled={loading}>立即重试</button></div>}
     {!loading && !error && filtered.map((row) => <ChangeCard key={row.change.id} row={row} timezone={settings.timezone} />)}
     {!loading && !error && filtered.length === 0 && <div className="source-loading">暂无符合条件的真实变更记录</div>}
   </section>;

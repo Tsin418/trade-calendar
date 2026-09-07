@@ -13,6 +13,7 @@ import { addDays, dateKeyInTimezone, formatDateRange } from "@/lib/date-time";
 import { eventTitle } from "@/lib/event-title";
 import { appendFilters, type FilterValues } from "@/lib/filters";
 import { labels } from "@/lib/demo-events";
+import { useLoadRetry } from "@/lib/use-load-retry";
 
 import { usePreferences } from "./preferences-context";
 
@@ -22,6 +23,7 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
   const [selected, setSelected] = useState<ApiEvent|null>(null);
   const [error, setError] = useState<string|null>(null);
   const [loading, setLoading] = useState(true);
+  const { attempt, retry } = useLoadRetry(Boolean(error), loading);
   const [range, setRange] = useState<{ start:Date; end:Date }|null>(null);
   const initialDate = useMemo(() => dateKeyInTimezone(new Date(), settings.timezone), [settings.timezone]);
   const load = useCallback(async (start:Date, end:Date) => {
@@ -47,7 +49,7 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
     if (!range) return;
     const timer = window.setTimeout(() => void load(range.start, range.end), 0);
     return () => window.clearTimeout(timer);
-  }, [load, range]);
+  }, [load, range, attempt]);
   const calendarEvents = events.map((event) => {
     const dateRange = event.date_range_start && event.date_range_end
       ? `${formatDateRange(event.date_range_start, event.date_range_end)} · `
@@ -65,7 +67,7 @@ export function CalendarBoard({ view, filters }: { view: "week" | "month"; filte
   });
   return (
     <>
-    {error && <div className="data-error" role="alert">{error}。请同时检查数据源页面。</div>}
+    {error && <div className="data-error" role="alert"><span>{error}。连接恢复后将自动重试。</span><button onClick={retry} disabled={loading}>立即重试</button></div>}
     <section className="panel calendar-panel" aria-busy={loading}>
       {loading && <div className="calendar-loading">正在读取当前视图事件…</div>}
       <FullCalendar

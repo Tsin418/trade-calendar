@@ -4,10 +4,11 @@ import { Bell, Globe2, RefreshCw, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { fetchSources, syncAllSources } from "@/lib/api";
+import { syncAllSources } from "@/lib/api";
 import { timezoneLabels } from "@/lib/date-time";
 
 import { usePreferences } from "./preferences-context";
+import { useSourceHealth } from "./source-health";
 
 export function AppHeaderActions() {
   const { readOnly } = usePreferences();
@@ -67,22 +68,10 @@ export function AppHeaderActions() {
 
 export function ContextStatus() {
   const { settings } = usePreferences();
-  const [status, setStatus] = useState("正在检查数据连接…");
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    fetchSources().then((sources) => {
-      if (cancelled) return;
-      const enabled = sources.filter((source) => source.enabled);
-      const healthy = enabled.filter((source) => source.health === "healthy").length;
-      setStatus(`${healthy}/${enabled.length} 个来源健康`);
-      setFailed(healthy !== enabled.length);
-    }).catch((reason) => {
-      if (cancelled) return;
-      setStatus(reason instanceof Error ? reason.message : "数据连接不可用");
-      setFailed(true);
-    });
-    return () => { cancelled = true; };
-  }, []);
+  const { sources, loading, error } = useSourceHealth();
+  const enabled = sources.filter((source) => source.enabled);
+  const healthy = enabled.filter((source) => source.health === "healthy").length;
+  const status = loading ? "正在检查数据连接…" : error ?? `${healthy}/${enabled.length} 个来源健康`;
+  const failed = !loading && (Boolean(error) || healthy !== enabled.length);
   return <div className={`context ${failed ? "context-error" : ""}`}><span><Globe2 size={15} />{timezoneLabels[settings.timezone] ?? settings.timezone}</span><p>{status}</p></div>;
 }

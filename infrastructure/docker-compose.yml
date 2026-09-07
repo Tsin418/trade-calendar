@@ -99,12 +99,16 @@ services:
   tunnel:
     image: cloudflare/cloudflared:latest
     profiles: ["tunnel"]
+    # VPC connects to 127.0.0.1:8000 in the API network namespace, avoiding
+    # stale Docker DNS addresses after a container or Docker Desktop restart.
+    network_mode: "service:api"
     command: ["tunnel", "--no-autoupdate", "run"]
     env_file:
       - cloudflared.env
     depends_on:
       api:
         condition: service_healthy
+        restart: true
     restart: unless-stopped
 
 volumes:

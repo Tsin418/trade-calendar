@@ -9,6 +9,7 @@ import { type ApiChange, type ApiEvent, type AppSettings, fetchChanges, fetchEve
 import { addDays, dateKeyInTimezone, formatDateRange, formatEventDateTime, formatEventTime, timezoneLabels, zonedDayRange } from "@/lib/date-time";
 import { eventTitle } from "@/lib/event-title";
 import { labels } from "@/lib/demo-events";
+import { useLoadRetry } from "@/lib/use-load-retry";
 
 import { usePreferences } from "./preferences-context";
 
@@ -20,6 +21,7 @@ export function DashboardWorkspace() {
   const [changes, setChanges] = useState<Array<{ change:ApiChange; event:ApiEvent|null }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string|null>(null);
+  const { attempt, retry } = useLoadRetry(Boolean(error), loading);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,12 +64,12 @@ export function DashboardWorkspace() {
     }
     void load();
     return () => { cancelled = true; };
-  }, [readOnly, settings.markets, settings.timezone]);
+  }, [readOnly, settings.markets, settings.timezone, attempt]);
 
   const upcomingToday = useMemo(() => todayEvents.filter(isUpcoming).length, [todayEvents]);
   const importantWeek = useMemo(() => weekEvents.filter((event) => event.importance === "critical" || event.importance === "high").slice(0, 3), [weekEvents]);
   return <>
-    {error && <div className="data-error dashboard-error" role="alert"><AlertCircle size={16} />{error}。总览不会展示静态占位事件。</div>}
+    {error && <div className="data-error dashboard-error" role="alert"><AlertCircle size={16} /><span>{error}。连接恢复后将自动重试。</span><button onClick={retry} disabled={loading}>立即重试</button></div>}
     <section className="hero" aria-busy={loading}>
       <NextEventCard event={nextCritical} loading={loading} timezone={settings.timezone} />
       <div className="metrics">

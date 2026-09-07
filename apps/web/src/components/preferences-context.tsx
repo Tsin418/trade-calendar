@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { type AppSettings, fetchPublicMode, fetchSettings } from "@/lib/api";
+import { useLoadRetry } from "@/lib/use-load-retry";
 
 export const defaultSettings:AppSettings = {
   timezone:"Asia/Shanghai",
@@ -32,8 +33,9 @@ export function PreferencesProvider({ children }:{ children:ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string|null>(null);
   const [readOnly, setReadOnly] = useState(false);
+  const { attempt } = useLoadRetry(Boolean(error), loading);
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -49,15 +51,15 @@ export function PreferencesProvider({ children }:{ children:ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void reload(), 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [reload, attempt]);
   const value = useMemo(
     () => ({ settings, loading, error, readOnly, setSettings, reload }),
-    [settings, loading, error, readOnly],
+    [settings, loading, error, readOnly, reload],
   );
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
 }

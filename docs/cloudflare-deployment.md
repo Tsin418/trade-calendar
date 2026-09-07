@@ -25,6 +25,40 @@ Cloudflare Worker 只部署 Next.js Web。FastAPI、PostgreSQL 和 APScheduler W
 
 生产可用性仍依赖本机 Tunnel、API、Worker 和数据库持续在线；长期方案是把后端迁移到高可用服务器。日常本地开发使用 `http://localhost:3000`，Next.js 开发环境会跳过远程 VPC binding 并代理到本地 `INTERNAL_API_URL`。
 
+## 重启后的连接恢复（2026-09-07）
+
+本地 Docker Tunnel 必须使用 Compose 中的 `network_mode: "service:api"`，与 API
+共享网络空间。对应 VPC Service `trade-calendar-fastapi` 的 Host/IP 必须为
+`127.0.0.1`，HTTP port 为 `8000`，Tunnel 为 `trade-calendar-api`。这两个配置必须
+同时生效；独立网络空间里的 Tunnel 无法通过自己的回环地址访问 API。
+
+不再使用 VPC 主机名 `api` 或 Docker 分配的 IP。此次故障中 Docker Desktop
+重启后 API 地址已变为 `172.19.0.3`，但 VPC 请求仍到达旧地址 `172.26.0.2`，
+日志为 `unable to dial tcp to origin ... i/o timeout`。固定回环地址无需 DNS
+解析，因此容器地址变化不再影响云端路由。Worker binding 和前端 URL 保持原值。
+
+更新或重建后端时，始终把 Tunnel 一起交给 Compose 管理：
+
+```powershell
+docker compose -f infrastructure/docker-compose.yml --env-file .env --profile tunnel up -d api worker tunnel
+```
+
+Tunnel 依赖 API 健康检查，并设置 `depends_on.api.restart: true`；不要单独删除 API
+容器或通过 `--no-deps` 重建 API，否则依附旧容器网络空间的 Tunnel 也需要重建。
+普通 API 重启可用：
+
+```powershell
+docker compose -f infrastructure/docker-compose.yml --env-file .env --profile tunnel restart api
+```
+
+验证时同时检查 `/health`、`/ready` 和线上 `/api/v1/events?limit=1`，仅看到 Tunnel
+Healthy 不足以证明它能访问 API。前端读取设置、总览、日/周/月历、变更和来源失败后
+每 15 秒自动重试，并在网络恢复或窗口获得焦点时重试；单次读取超时为 20 秒。
+成功后停止重试，写入和同步操作不会被自动重放。
+
+参考：[Docker Compose 网络空间与依赖](https://docs.docker.com/reference/compose-file/services/)、
+[Cloudflare VPC Service 路由配置](https://developers.cloudflare.com/workers-vpc/configuration/vpc-services/)。
+
 ## 安全注意
 
 - GitHub 仓库保持 Private；

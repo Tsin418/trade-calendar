@@ -112,9 +112,20 @@ export type ApiEventSource = {
 };
 
 export async function fetchPublicMode(): Promise<{ readOnly:boolean }> {
-  const response = await fetch("/api/public-mode", { cache:"no-store" });
-  if (!response.ok) return { readOnly:false };
+  const response = await readApi("/api/public-mode");
+  if (!response.ok) throw new Error("无法读取访问模式，请重试");
   return response.json();
+}
+
+async function readApi(url:string):Promise<Response> {
+  try {
+    return await fetch(url, { cache:"no-store", signal:AbortSignal.timeout(20_000) });
+  } catch (reason) {
+    if (reason instanceof Error && reason.name === "TimeoutError") {
+      throw new Error("数据连接超时，请稍后重试");
+    }
+    throw reason;
+  }
 }
 
 async function apiFailureMessage(response: Response, fallback: string): Promise<string> {
@@ -130,31 +141,31 @@ async function apiFailureMessage(response: Response, fallback: string): Promise<
 }
 
 export async function fetchEvents(query = ""): Promise<EventListResponse> {
-  const response = await fetch(`/api/v1/events${query ? `?${query}` : ""}`, { cache:"no-store" });
+  const response = await readApi(`/api/v1/events${query ? `?${query}` : ""}`);
   if (!response.ok) throw new Error(await apiFailureMessage(response, `事件 API 返回 ${response.status}`));
   return response.json();
 }
 
 export async function fetchEvent(eventId:string): Promise<ApiEvent> {
-  const response = await fetch(`/api/v1/events/${eventId}`, { cache:"no-store" });
+  const response = await readApi(`/api/v1/events/${eventId}`);
   if (!response.ok) throw new Error(await apiFailureMessage(response, `事件 API 返回 ${response.status}`));
   return response.json();
 }
 
 export async function fetchEventSources(eventId:string): Promise<ApiEventSource[]> {
-  const response = await fetch(`/api/v1/events/${eventId}/sources`, { cache:"no-store" });
+  const response = await readApi(`/api/v1/events/${eventId}/sources`);
   if (!response.ok) throw new Error(await apiFailureMessage(response, `事件来源 API 返回 ${response.status}`));
   return response.json();
 }
 
 export async function fetchChanges(limit = 50): Promise<ApiChange[]> {
-  const response = await fetch(`/api/v1/changes?limit=${limit}`, { cache:"no-store" });
+  const response = await readApi(`/api/v1/changes?limit=${limit}`);
   if (!response.ok) throw new Error(await apiFailureMessage(response, `变更 API 返回 ${response.status}`));
   return response.json();
 }
 
 export async function fetchSources(): Promise<ApiSource[]> {
-  const response = await fetch("/api/v1/sources", { cache:"no-store" });
+  const response = await readApi("/api/v1/sources");
   if (!response.ok) throw new Error(await apiFailureMessage(response, `来源 API 返回 ${response.status}`));
   return response.json();
 }
@@ -169,7 +180,7 @@ export async function syncAllSources(): Promise<SyncRun[]> {
 }
 
 export async function fetchSettings(): Promise<AppSettings> {
-  const response = await fetch("/api/v1/settings", { cache:"no-store" });
+  const response = await readApi("/api/v1/settings");
   if (!response.ok) throw new Error(await apiFailureMessage(response, `设置 API 返回 ${response.status}`));
   return response.json();
 }
@@ -206,7 +217,7 @@ export async function saveEvent(payload: Record<string, unknown>, eventId?: stri
 }
 
 export async function fetchLocks(eventId:string): Promise<FieldLock[]> {
-  const response = await fetch(`/api/v1/events/${eventId}/locks`, { cache:"no-store" });
+  const response = await readApi(`/api/v1/events/${eventId}/locks`);
   if (!response.ok) throw new Error("无法读取字段锁");
   return response.json();
 }
