@@ -7,15 +7,19 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-
 from trade_calendar.core.config import get_settings
 from trade_calendar.core.database import SessionLocal
 from trade_calendar.core.logging import configure_logging
 from trade_calendar.models.domain import FetchRun, RunStatus, Source, WorkerHeartbeat
 from trade_calendar.notifications import deliver_notification, due_notification
+from trade_calendar.preferences import load_web_settings
 from trade_calendar.scheduling import enqueue_scheduled_run, refresh_stale_sources
 from trade_calendar.source_registry import adapter_registry, seed_sources
 from trade_calendar.sync import SyncRunner, make_run
+from trade_calendar.translations import (
+    enqueue_calendar_translations,
+    process_translation_batch,
+)
 
 configure_logging(os.getenv("CALENDAR_LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
@@ -155,6 +159,7 @@ async def main() -> None:
             )
         ))
     await enqueue_never_run_sources()
+    await refresh_translation_queue()
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         write_heartbeat,
@@ -187,6 +192,14 @@ async def main() -> None:
         max_instances=1,
         coalesce=True,
     )
+    scheduler.add_job(
+        refresh_translation_queue, "interval", minutes=5,
+        id="translation-queue", max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        translate_pending_text, "interval", seconds=30,
+        id="translate-calendar", max_instances=1, coalesce=True,
+    )
     for source_key, schedule in source_schedules:
         scheduler.add_job(
             enqueue_scheduled_source,
@@ -200,6 +213,23 @@ async def main() -> None:
     scheduler.start()
     await write_heartbeat()
     await asyncio.Event().wait()
+
+
+async def refresh_translation_queue() -> None:
+    if settings.agnes_api_key is None:
+        return
+    async with SessionLocal() as session:
+        if (await load_web_settings(session)).auto_translation != "auto":
+            return
+        queued = await enqueue_calendar_translations(session)
+    if queued:
+        logger.info({"event": "translations_queued", "count": queued})
+
+
+async def translate_pending_text() -> None:
+    result = await process_translation_batch(SessionLocal)
+    if result["translated"] or result["failed"]:
+        logger.info({"event": "translation_batch", **result})
 
 
 if __name__ == "__main__":

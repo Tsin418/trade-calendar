@@ -4,6 +4,8 @@ export type ApiEvent = {
   title_zh: string;
   title_original: string | null;
   display_title: string;
+  display_institution?: string;
+  display_original_time_text?: string | null;
   institution: string;
   country_code: string;
   category: string;
@@ -39,6 +41,7 @@ export type ApiChange = {
   to_version:number;
   change_type:string;
   changed_fields:Record<string, { old:unknown; new:unknown }>;
+  display_changed_fields?:Record<string, { old:unknown; new:unknown }>;
   created_at:string;
 };
 export type SyncRun = {
@@ -58,7 +61,7 @@ export type AppSettings = {
   daily_summary:string;
   evening_preview:string;
   snapshot_retention_days:30|90|180;
-  auto_translation:"off"|"review";
+  auto_translation:"off"|"review"|"auto";
 };
 export type SourceHealth = "healthy" | "stale" | "degraded" | "failed" | "disabled";
 export type ApiSource = {
@@ -107,6 +110,8 @@ export type ApiEventSource = {
   official_url:string;
   source_event_id:string|null;
   source_title:string|null;
+  display_title?:string;
+  display_source_name?:string;
   is_primary:boolean;
   last_verified_at:string|null;
 };

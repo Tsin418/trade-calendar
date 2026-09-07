@@ -1,4 +1,3 @@
-import re
 from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
@@ -13,6 +12,7 @@ from pydantic import (
     model_validator,
 )
 
+from trade_calendar.languages import display_text
 from trade_calendar.models.domain import DatePrecision, EventStatus, Importance
 
 
@@ -146,16 +146,28 @@ class EventRead(BaseModel):
     last_verified_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    translations: dict[str, str] = Field(default_factory=dict, exclude=True)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def display_title(self) -> str:
         original = (self.title_original or "").strip()
-        if not original:
-            return self.title_zh
-        if re.search(r"[\u3040-\u30ff\uac00-\ud7af]", original):
-            return self.title_zh
-        return original
+        return display_text(
+            original or self.title_zh, self.translations, self.title_zh,
+            placeholder="标题翻译中",
+        )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_institution(self) -> str:
+        return display_text(self.institution, self.translations, placeholder="机构名称翻译中")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_original_time_text(self) -> str | None:
+        if not self.original_time_text:
+            return None
+        return display_text(self.original_time_text, self.translations)
 
     @field_validator("starts_at", "ends_at", mode="before")
     @classmethod
@@ -182,6 +194,17 @@ class EventSourceRead(BaseModel):
     source_title: str | None
     is_primary: bool
     last_verified_at: datetime | None
+    translations: dict[str, str] = Field(default_factory=dict, exclude=True)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_title(self) -> str:
+        return display_text(self.source_title or self.institution, self.translations)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_source_name(self) -> str:
+        return display_text(self.source_name, self.translations)
 
     @field_validator("last_verified_at", mode="before")
     @classmethod
@@ -214,6 +237,18 @@ class ChangeRead(BaseModel):
     change_type: str
     changed_fields: dict[str, Any]
     created_at: datetime
+    translations: dict[str, str] = Field(default_factory=dict, exclude=True)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_changed_fields(self) -> dict[str, Any]:
+        return {
+            field: {
+                side: display_text(value, self.translations) if isinstance(value, str) else value
+                for side, value in values.items()
+            }
+            for field, values in self.changed_fields.items()
+        }
 
     @field_validator("created_at", mode="before")
     @classmethod

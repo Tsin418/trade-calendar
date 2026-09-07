@@ -24,6 +24,8 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("CALENDAR_FINNHUB_API_KEY", "FINNHUB_API_KEY"),
     )
+    agnes_api_key: SecretStr | None = None
+    agnes_model: str = "agnes-2.5-flash"
     ics_token: SecretStr = SecretStr("development-ics-token")
     config_dir: Path = Path("../../config")
     public_base_url: str = "http://localhost:3000"

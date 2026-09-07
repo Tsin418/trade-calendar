@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SourceHealthSummary } from "@/components/source-health";
 import { type ApiChange, type ApiEvent, type AppSettings, fetchChanges, fetchEvent, fetchEvents } from "@/lib/api";
 import { addDays, dateKeyInTimezone, formatDateRange, formatEventDateTime, formatEventTime, timezoneLabels, zonedDayRange } from "@/lib/date-time";
-import { eventTitle } from "@/lib/event-title";
+import { eventInstitution, eventOriginalTime, eventTitle } from "@/lib/event-title";
 import { labels } from "@/lib/demo-events";
 import { useLoadRetry } from "@/lib/use-load-retry";
 
@@ -119,8 +119,8 @@ function NextEventCard({ event, loading, timezone }:{ event:ApiEvent|null; loadi
   return <article className="next-card">
     <div className="next-label"><span><i />下一个关键事件</span>{event && <b>CRITICAL</b>}</div>
     {loading ? <div className="source-loading"><RefreshCw className="spin" size={14} />正在核验下一个关键事件…</div> : event ? <>
-      <div className="next-body"><div><small><b>{event.country_code}</b> {event.institution} · {event.category}</small><h2>{eventTitle(event)}</h2></div>{event.starts_at ? <Countdown target={event.starts_at} /> : <div className="date-only-badge">{hasDateRange ? "日期范围" : "仅确认日期"}<br />{dateRange}<br />具体时间待定</div>}</div>
-      <footer><span><CalendarDays size={15} />{event.starts_at ? formatEventDateTime(event.starts_at, timezone) : dateRange}</span><span><ShieldCheck size={15} />{event.institution} · {labels.status[normalizeStatus(event.status)]}</span></footer>
+      <div className="next-body"><div><small><b>{event.country_code}</b> {eventInstitution(event)} · {event.category}</small><h2>{eventTitle(event)}</h2></div>{event.starts_at ? <Countdown target={event.starts_at} /> : <div className="date-only-badge">{hasDateRange ? "日期范围" : "仅确认日期"}<br />{dateRange}<br />具体时间待定</div>}</div>
+      <footer><span><CalendarDays size={15} />{event.starts_at ? formatEventDateTime(event.starts_at, timezone) : dateRange}</span><span><ShieldCheck size={15} />{eventInstitution(event)} · {labels.status[normalizeStatus(event.status)]}</span></footer>
     </> : <div className="empty-state"><span>—</span><p>没有可用的关键事件；请检查数据源状态</p></div>}
   </article>;
 }
@@ -141,7 +141,7 @@ function Countdown({ target }:{ target:string }) {
 function DashboardEvent({ event, timezone }:{ event:ApiEvent; timezone:string }) {
   const dateRange = formatDateRange(event.date_range_start ?? event.local_date, event.date_range_end);
   const sourceTimezone = event.original_timezone ? timezoneLabels[event.original_timezone] ?? event.original_timezone : "当地日期";
-  return <div className={`event ${!isUpcoming(event) ? "passed" : ""}`}><div className="time"><b>{event.starts_at ? formatEventTime(event.starts_at, timezone) : dateRange}</b><small>{event.starts_at ? event.original_time_text : `具体时间待定 · ${sourceTimezone}`}</small></div><i className={event.importance === "high" || event.importance === "critical" ? "high-dot" : ""} /><div className="event-copy"><small>{event.country_code} · {event.institution}</small><h3>{eventTitle(event)}</h3></div><div className="event-state"><b className={event.importance === "critical" || event.importance === "high" ? "high" : "medium"}>{labels.importance[event.importance]}</b><small>{labels.status[normalizeStatus(event.status)]}</small></div></div>;
+  return <div className={`event ${!isUpcoming(event) ? "passed" : ""}`}><div className="time"><b>{event.starts_at ? formatEventTime(event.starts_at, timezone) : dateRange}</b><small>{event.starts_at ? eventOriginalTime(event) : `具体时间待定 · ${sourceTimezone}`}</small></div><i className={event.importance === "high" || event.importance === "critical" ? "high-dot" : ""} /><div className="event-copy"><small>{event.country_code} · {eventInstitution(event)}</small><h3>{eventTitle(event)}</h3></div><div className="event-state"><b className={event.importance === "critical" || event.importance === "high" ? "high" : "medium"}>{labels.importance[event.importance]}</b><small>{labels.status[normalizeStatus(event.status)]}</small></div></div>;
 }
 
 function WeekItem({ event, timezone }:{ event:ApiEvent; timezone:string }) {

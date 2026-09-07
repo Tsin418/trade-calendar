@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from trade_calendar.core.database import get_session
 from trade_calendar.models.domain import EventChange
 from trade_calendar.schemas.events import ChangeRead
+from trade_calendar.translations import attach_translations
 
 router = APIRouter(prefix="/changes", tags=["changes"])
 
@@ -17,5 +18,4 @@ async def list_changes(
     items = await session.scalars(
         select(EventChange).order_by(EventChange.created_at.desc()).limit(limit)
     )
-    return [ChangeRead.model_validate(item) for item in items]
-
+    return await attach_translations(session, [ChangeRead.model_validate(item) for item in items])

@@ -369,3 +369,17 @@ class SystemSetting(TimestampMixin, Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+class TextTranslation(TimestampMixin, Base):
+    __tablename__ = "text_translations"
+
+    text_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_text: Mapped[str] = mapped_column(Text)
+    target_language: Mapped[str] = mapped_column(String(16), default="zh-CN")
+    translated_text: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str] = mapped_column(String(100), default="agnes-2.5-flash")
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(String(100))
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -73,7 +73,7 @@ function EditableSettings({ initial, onSaved }:{ initial:AppSettings; onSaved:(s
     </SettingsSection>
     <SettingsSection icon={Shield} title="数据保留" description="事件版本长期保留，原始响应按期限清理。">
       <Field label="原始快照保留"><select value={draft.snapshot_retention_days} onChange={(event) => setDraft({ ...draft, snapshot_retention_days:Number(event.target.value) as 30|90|180 })}><option value="30">30 天</option><option value="90">90 天</option><option value="180">180 天</option></select></Field>
-      <Field label="中文自动翻译"><select value={draft.auto_translation} onChange={(event) => setDraft({ ...draft, auto_translation:event.target.value as "off"|"review" })}><option value="off">关闭</option><option value="review">仅候选，人工确认</option></select></Field>
+      <Field label="中文自动翻译"><select value={draft.auto_translation} onChange={(event) => setDraft({ ...draft, auto_translation:event.target.value as "off"|"review"|"auto" })}><option value="off">关闭</option><option value="auto">自动翻译（Agnes 免费模型）</option><option value="review">仅候选，人工确认</option></select></Field>
     </SettingsSection>
     <div className="settings-actions"><p><Clock3 size={14} />{message ? <span className={message.tone}>{message.text}</span> : "修改后请保存，成功结果将由 API 返回"}</p><button className="sync" disabled={saving} type="submit"><Save size={15} />{saving ? "保存中…" : "保存设置"}</button></div>
   </form>;

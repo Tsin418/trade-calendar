@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ApiEvent } from "./api";
-import { eventTitle } from "./event-title";
+import { displayText, eventTitle } from "./event-title";
 
 function event(values:Partial<ApiEvent>):ApiEvent {
   return {
@@ -13,6 +13,13 @@ function event(values:Partial<ApiEvent>):ApiEvent {
 }
 
 describe("eventTitle", () => {
+  it("never falls back to untranslated Korean in a legacy Chinese field", () => {
+    expect(eventTitle(event({
+      title_original:"한국 통계 발표", title_zh:"韩国统计发布：한국 통계 발표",
+      display_title:"韩国统计发布：한국 통계 발표",
+    }))).toBe("标题翻译中");
+    expect(displayText("ㅎㅏㄴ" )).toBe("翻译中");
+  });
   it("uses English originals and Chinese originals directly", () => {
     expect(eventTitle(event({
       title_original:"Consumer Price Index",

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyEvents } from "@/components/daily-events";
 import { type ApiEvent, fetchEvents } from "@/lib/api";
 import { addDays, dateKeyInTimezone, zonedDayRange } from "@/lib/date-time";
-import { eventTitle } from "@/lib/event-title";
+import { eventInstitution, eventOriginalTime, eventTitle } from "@/lib/event-title";
 import { appendFilters, type FilterValues } from "@/lib/filters";
 import type { CalendarEvent } from "@/lib/demo-events";
 import { useLoadRetry } from "@/lib/use-load-retry";
@@ -72,7 +72,7 @@ export function toCalendarEvent(event:ApiEvent): CalendarEvent {
   return {
     id:event.id,
     title:eventTitle(event),
-    institution:event.institution,
+    institution:eventInstitution(event),
     country:event.country_code,
     market:event.market_tags[0] ?? event.country_code,
     category:event.category,
@@ -83,7 +83,7 @@ export function toCalendarEvent(event:ApiEvent): CalendarEvent {
     localDate:event.local_date ?? undefined,
     dateRangeStart:event.date_range_start ?? undefined,
     dateRangeEnd:event.date_range_end ?? undefined,
-    originalTime:event.original_time_text ?? undefined,
-    source:event.is_manual ? "人工来源" : event.institution,
+    originalTime:eventOriginalTime(event),
+    source:event.is_manual ? "人工来源" : eventInstitution(event),
   };
 }

@@ -19,7 +19,7 @@ class WebSettings(BaseModel):
     daily_summary: time = time(7, 30)
     evening_preview: time = time(20, 30)
     snapshot_retention_days: Literal[30, 90, 180] = 90
-    auto_translation: Literal["off", "review"] = "off"
+    auto_translation: Literal["off", "review", "auto"] = "off"
 
     @field_validator("markets")
     @classmethod

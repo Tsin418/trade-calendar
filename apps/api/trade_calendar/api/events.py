@@ -38,6 +38,7 @@ from trade_calendar.services import (
     soft_delete_event,
     update_event,
 )
+from trade_calendar.translations import attach_translations
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -73,7 +74,7 @@ async def list_events(
         ).limit(limit).offset(offset)
     )
     return EventList(
-        items=[EventRead.model_validate(row) for row in rows],
+        items=await attach_translations(session, [EventRead.model_validate(row) for row in rows]),
         total=total,
         limit=limit,
         offset=offset,
@@ -90,12 +91,13 @@ async def post_event(
     event, created = await create_event(session, payload, request.state.request_id)
     if not created:
         response.status_code = status.HTTP_200_OK
-    return EventRead.model_validate(event)
+    return (await attach_translations(session, [EventRead.model_validate(event)]))[0]
 
 
 @router.get("/{event_id}", response_model=EventRead)
 async def get_event(event_id: UUID, session: AsyncSession = Depends(get_session)) -> EventRead:
-    return EventRead.model_validate(await get_event_or_404(session, event_id))
+    event = await get_event_or_404(session, event_id)
+    return (await attach_translations(session, [EventRead.model_validate(event)]))[0]
 
 
 @router.get("/{event_id}/sources", response_model=list[EventSourceRead])
@@ -111,7 +113,7 @@ async def list_event_sources(
         .where(EventSource.event_id == event_id)
         .order_by(EventSource.is_primary.desc(), Source.priority.asc(), Source.name.asc())
     )
-    return [
+    return await attach_translations(session, [
         EventSourceRead(
             source_id=source.id,
             source_key=source.key,
@@ -124,7 +126,7 @@ async def list_event_sources(
             last_verified_at=link.last_verified_at,
         )
         for link, source, observation in rows
-    ]
+    ])
 
 
 @router.patch("/{event_id}", response_model=EventRead)
@@ -136,7 +138,7 @@ async def patch_event(
 ) -> EventRead:
     event = await get_event_or_404(session, event_id)
     event, _ = await update_event(session, event, payload, request.state.request_id)
-    return EventRead.model_validate(event)
+    return (await attach_translations(session, [EventRead.model_validate(event)]))[0]
 
 
 @router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -173,7 +175,7 @@ async def list_event_changes(
         .where(EventChange.event_id == event_id)
         .order_by(EventChange.created_at.desc())
     )
-    return [ChangeRead.model_validate(item) for item in changes]
+    return await attach_translations(session, [ChangeRead.model_validate(item) for item in changes])
 
 
 @router.get("/{event_id}/locks", response_model=list[FieldLockRead])
