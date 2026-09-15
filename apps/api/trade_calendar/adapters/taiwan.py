@@ -2,6 +2,7 @@ import hashlib
 import html
 import json
 import re
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
@@ -33,36 +34,65 @@ MONTHS = {
 
 class TaiwanCbcMeetingAdapter(SourceAdapter):
     source_key = "taiwan_cbc"
-    version = "1.0.0"
-    url = "https://www.cbc.gov.tw/en/lp-448-2-5-20.html"
+    version = "1.1.0"
+    url = "https://www.cbc.gov.tw/en/lp-448-2-1-20.html"
+    max_listing_pages = 20
 
-    def __init__(self, fetcher: HttpFetcher) -> None:
+    def __init__(self, fetcher: HttpFetcher, today: Callable[[], date] | None = None) -> None:
         self.fetcher = fetcher
+        self.today = today or (lambda: datetime.now(TAIPEI).date())
 
     async def fetch(self) -> RawPayload:
-        listing = await self.fetcher.get(
-            self.source_key, self.url, {"Accept": "text/html"}
-        )
-        tree = HTMLParser(listing.content)
-        link = next(
-            (
-                node
-                for node in tree.css("a")
-                if "Schedule of Monetary Policy Meetings for"
-                in node.text(separator=" ", strip=True)
-            ),
-            None,
-        )
-        href = link.attributes.get("href") if link is not None else None
-        if not href:
-            raise StructureChangedError("Taiwan CBC annual meeting schedule link is missing")
-        return await self.fetcher.get(
-            self.source_key,
-            urljoin(listing.url, href),
-            {"Accept": "text/html"},
+        year = self.today().year
+        links: dict[int, str] = {}
+        listing_url = self.url
+        for page in range(1, self.max_listing_pages + 1):
+            listing = await self.fetcher.get(
+                self.source_key, listing_url, {"Accept": "text/html"}
+            )
+            tree = HTMLParser(listing.content)
+            next_url = None
+            for node in tree.css("a[href]"):
+                href = urljoin(listing.url, node.attributes["href"])
+                label = node.text(separator=" ", strip=True)
+                match = re.search(
+                    r"Schedule of Monetary Policy Meetings for\s+(20\d{2})", label, re.I
+                )
+                if match and int(match.group(1)) in {year, year + 1}:
+                    links.setdefault(int(match.group(1)), href)
+                # Follow only the next official listing page, never an arbitrary link.
+                if href == f"https://www.cbc.gov.tw/en/lp-448-2-{page + 1}-20.html":
+                    next_url = href
+            if year in links or next_url is None:
+                break
+            listing_url = next_url
+        if year not in links:
+            raise StructureChangedError(
+                f"Taiwan CBC meeting schedule for {year} is missing from the press release index"
+            )
+        announcements = []
+        for announcement_year, url in sorted(links.items()):
+            document = await self.fetcher.get(self.source_key, url, {"Accept": "text/html"})
+            announcements.append({
+                "year": announcement_year, "url": document.url,
+                "html": document.content.decode("utf-8"),
+            })
+        return RawPayload(
+            source_key=self.source_key,
+            url=links[year],
+            content=json.dumps({"announcements": announcements}, ensure_ascii=False).encode(),
+            content_type="application/json",
         )
 
     def parse(self, payload: RawPayload) -> list[SourceEvent]:
+        if payload.content_type == "application/json":
+            combined: list[SourceEvent] = []
+            for document in json.loads(payload.content)["announcements"]:
+                combined.extend(self.parse(RawPayload(
+                    source_key=self.source_key, url=document["url"],
+                    content=document["html"].encode(), content_type="text/html",
+                )))
+            return combined
         tree = HTMLParser(payload.content)
         body = tree.body
         text = re.sub(

@@ -7,15 +7,20 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from trade_calendar.core.config import get_settings
 from trade_calendar.core.database import SessionLocal
 from trade_calendar.core.logging import configure_logging
 from trade_calendar.models.domain import FetchRun, RunStatus, Source, WorkerHeartbeat
 from trade_calendar.notifications import deliver_notification, due_notification
 from trade_calendar.preferences import load_web_settings
-from trade_calendar.scheduling import enqueue_scheduled_run, refresh_stale_sources
+from trade_calendar.scheduling import (
+    enqueue_due_runs,
+    enqueue_scheduled_run,
+    refresh_stale_sources,
+)
 from trade_calendar.source_registry import adapter_registry, seed_sources
-from trade_calendar.sync import SyncRunner, make_run
+from trade_calendar.sync import SyncRunner
 from trade_calendar.translations import (
     enqueue_calendar_translations,
     process_translation_batch,
@@ -133,20 +138,11 @@ async def refresh_source_health() -> None:
         logger.info({"event": "source_health_refreshed", "changed": changed})
 
 
-async def enqueue_never_run_sources() -> None:
-    registry = adapter_registry()
+async def recover_missed_source_runs() -> None:
     async with SessionLocal() as session:
-        sources = list(await session.scalars(
-            select(Source).where(Source.enabled.is_(True), Source.key.in_(registry))
-        ))
-        for source in sources:
-            has_run = await session.scalar(
-                select(FetchRun.id).where(FetchRun.source_id == source.id).limit(1)
-            )
-            if has_run is None:
-                run = make_run(source, registry[source.key], trigger="initial")
-                session.add(run)
-        await session.commit()
+        runs = await enqueue_due_runs(session, adapter_registry())
+    if runs:
+        logger.info({"event": "missed_source_runs_queued", "count": len(runs)})
 
 
 async def main() -> None:
@@ -158,7 +154,7 @@ async def main() -> None:
                 Source.enabled.is_(True), Source.key.in_(registry)
             )
         ))
-    await enqueue_never_run_sources()
+    await recover_missed_source_runs()
     await refresh_translation_queue()
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
@@ -167,6 +163,15 @@ async def main() -> None:
         minutes=1,
         id="worker-heartbeat",
         max_instances=1,
+    )
+    scheduler.add_job(
+        recover_missed_source_runs,
+        "interval",
+        minutes=1,
+        id="recover-missed-source-runs",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=None,
     )
     scheduler.add_job(
         process_pending_run,

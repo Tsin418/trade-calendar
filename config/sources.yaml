@@ -109,7 +109,7 @@ sources:
     name: Taiwan Central Bank Press Releases
     institution: Central Bank of the Republic of China (Taiwan)
     country: TW
-    official_url: https://www.cbc.gov.tw/en/lp-448-2-5-20.html
+    official_url: https://www.cbc.gov.tw/en/lp-448-2-1-20.html
     type: html
     categories: [monetary_policy]
     priority: 10
