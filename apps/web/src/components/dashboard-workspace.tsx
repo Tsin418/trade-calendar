@@ -139,7 +139,7 @@ function Countdown({ target }:{ target:string }) {
 }
 
 function DashboardEvent({ event, timezone }:{ event:ApiEvent; timezone:string }) {
-  const dateRange = formatDateRange(event.date_range_start ?? event.local_date, event.date_range_end);
+  const dateRange = formatDateRange(event.date_range_start ?? event.local_date, event.date_range_end, "compact");
   const sourceTimezone = event.original_timezone ? timezoneLabels[event.original_timezone] ?? event.original_timezone : "当地日期";
   return <div className={`event ${!isUpcoming(event) ? "passed" : ""}`}><div className="time"><b>{event.starts_at ? formatEventTime(event.starts_at, timezone) : dateRange}</b><small>{event.starts_at ? eventOriginalTime(event) : `具体时间待定 · ${sourceTimezone}`}</small></div><i className={event.importance === "high" || event.importance === "critical" ? "high-dot" : ""} /><div className="event-copy"><small>{event.country_code} · {eventInstitution(event)}</small><h3>{eventTitle(event)}</h3></div><div className="event-state"><b className={event.importance === "critical" || event.importance === "high" ? "high" : "medium"}>{labels.importance[event.importance]}</b><small>{labels.status[normalizeStatus(event.status)]}</small></div></div>;
 }

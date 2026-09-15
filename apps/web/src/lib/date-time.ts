@@ -42,12 +42,19 @@ export function formatEventDateTime(value:string, timezone:string):string {
   }).format(new Date(value));
 }
 
-export function formatDateRange(start:string | null | undefined, end?:string | null):string {
+export function formatDateRange(start:string | null | undefined, end?:string | null, style:"long"|"compact" = "long"):string {
   if (!start) return "日期待定";
   const finish = end || start;
   const startParts = parseDateKey(start);
   const endParts = parseDateKey(finish);
   if (!startParts || !endParts) return start === finish ? start : `${start}–${finish}`;
+  if (style === "compact") {
+    const first = `${startParts.month}.${startParts.day}`;
+    const last = `${endParts.month}.${endParts.day}`;
+    if (start === finish) return first;
+    if (startParts.year !== endParts.year) return `${startParts.year}.${first}-${endParts.year}.${last}`;
+    return `${first}-${startParts.month === endParts.month ? endParts.day : last}`;
+  }
   if (start === finish) return `${startParts.month}月${startParts.day}日`;
   if (startParts.year !== endParts.year) {
     return `${startParts.year}年${startParts.month}月${startParts.day}日–${endParts.year}年${endParts.month}月${endParts.day}日`;
