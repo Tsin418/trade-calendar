@@ -13,6 +13,11 @@ companies:
   - {id: tesla, ticker: TSLA, market: US, name_zh: 特斯拉, name_en: Tesla, finnhub_symbol: TSLA, longbridge_symbol: TSLA.US, enabled: true}
   - {id: micron, ticker: MU, market: US, name_zh: 美光科技, name_en: Micron Technology, finnhub_symbol: MU, longbridge_symbol: MU.US, enabled: true}
   - {id: jpmorgan, ticker: JPM, market: US, name_zh: 摩根大通, name_en: JPMorgan Chase, finnhub_symbol: JPM, longbridge_symbol: JPM.US, enabled: true}
+  # Added 2026-10-11 for the Dolphin Research X core pool (memory / AI semis).
+  - {id: amd, ticker: AMD, market: US, name_zh: 超威半导体, name_en: AMD, finnhub_symbol: AMD, longbridge_symbol: AMD.US, enabled: true}
+  - {id: sandisk, ticker: SNDK, market: US, name_zh: 闪迪, name_en: Sandisk, finnhub_symbol: SNDK, longbridge_symbol: SNDK.US, enabled: true}
+  - {id: marvell, ticker: MRVL, market: US, name_zh: 迈威尔科技, name_en: Marvell Technology, finnhub_symbol: MRVL, longbridge_symbol: MRVL.US, enabled: true}
+  - {id: intel, ticker: INTC, market: US, name_zh: 英特尔, name_en: Intel, finnhub_symbol: INTC, longbridge_symbol: INTC.US, enabled: true}
 
   # Japan — use the most reliable US ADR/OTC alias on Finnhub's free tier.
   - {id: toyota, ticker: "7203", market: JP, name_zh: 丰田汽车, name_en: Toyota Motor, finnhub_symbol: TM, longbridge_symbol: TM.US, source_names: [トヨタ自動車], ir_url: "https://global.toyota/en/ir/", enabled: true}
@@ -52,6 +57,7 @@ companies:
   - {id: aia, ticker: "1299", market: HK, name_zh: 友邦保险, name_en: AIA Group, finnhub_symbol: AAGIY, longbridge_symbol: 1299.HK, enabled: true}
   - {id: xiaomi, ticker: "1810", market: HK, name_zh: 小米集团, name_en: Xiaomi, finnhub_symbol: XIACF, longbridge_symbol: 1810.HK, enabled: true}
   - {id: meituan, ticker: "3690", market: HK, name_zh: 美团, name_en: Meituan, finnhub_symbol: MPNGY, longbridge_symbol: 3690.HK, enabled: true}
+  - {id: zhipu, ticker: "2513", market: HK, name_zh: 智谱, name_en: Zhipu AI, longbridge_symbol: 2513.HK, source_names: [Z.AI, 北京智谱华章科技], enabled: true}
   - {id: hkex, ticker: "0388", market: HK, name_zh: 香港交易所, name_en: Hong Kong Exchanges and Clearing, finnhub_symbol: HKXCY, longbridge_symbol: 388.HK, enabled: true}
 
   # Taiwan

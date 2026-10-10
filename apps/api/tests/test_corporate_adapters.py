@@ -67,13 +67,13 @@ def payload(source_key: str, content: bytes, url: str = "https://example.test") 
     )
 
 
-def test_watchlist_contains_50_companies() -> None:
+def test_watchlist_contains_55_companies() -> None:
     config_dir = Path(__file__).resolve().parents[3] / "config"
     companies = load_company_watchlist(config_dir)
-    assert len(companies) == 50
+    assert len(companies) == 55
     assert {market: sum(item.market == market for item in companies) for market in {
         "US", "JP", "KR", "CN", "HK", "TW"
-    }} == {"US": 10, "JP": 8, "KR": 8, "CN": 8, "HK": 8, "TW": 8}
+    }} == {"US": 14, "JP": 8, "KR": 8, "CN": 8, "HK": 9, "TW": 8}
 
 
 def test_secret_setting_detects_non_empty_value() -> None:
